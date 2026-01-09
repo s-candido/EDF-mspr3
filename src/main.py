@@ -7,6 +7,8 @@ from features.weather_features import *
 from modeling.train import train_models
 from modeling.evaluate import evaluate_model
 
+from ingestion.downloader import download_and_extract
+
 from sklearn.model_selection import train_test_split
 import joblib
 import os
@@ -41,5 +43,7 @@ for name, model in models.items():
 
 os.makedirs("../models", exist_ok=True)
 joblib.dump(best_model, "../models/model.joblib")
+
+download_and_extract(start_year=2012, target_dir="data")
 
 print(f"Modèle retenu : {best_name} (R2={best_r2:.4f})")
