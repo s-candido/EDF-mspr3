@@ -1,0 +1,11 @@
+openpyxl 
+xlrd 
+openmeteo-requests 
+requests-cache 
+retry-requests 
+numpy 
+pandas
+scikit-learn
+seaborn
+numpy
+matplotlib
