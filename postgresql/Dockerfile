@@ -4,7 +4,6 @@ FROM postgres:latest
 # Set the working directory in the container
 WORKDIR /postgres_db
 
-
 # Set environment variables
 ENV POSTGRES_HOST=localhost
 ENV POSTGRES_DB=postgres
@@ -12,9 +11,8 @@ ENV POSTGRES_USER=postgres
 ENV POSTGRES_PASSWORD=postgres
 ENV POSTGRES_PORT=5432
 
-# Make port 80 available to the world outside this container
+# Expose the default PostgreSQL port internally
 EXPOSE 5432
-
 
 # Run PostgreSQL in read-only mode
 CMD ["postgres", "-c", "default_transaction_read_only=off",  "-c", "allow_system_table_mods=on"]
