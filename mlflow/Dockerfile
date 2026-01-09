@@ -17,4 +17,4 @@ EXPOSE 5000
 WORKDIR /mlflow
 
 # Command to run MLflow server
-CMD ["mlflow", "server", "--backend-store-uri", "sqlite:///mlflow.db", "--default-artifact-root", "/mlflow/artifacts", "--host", "0.0.0.0"]
+CMD ["mlflow", "server", "--backend-store-uri", "postgresql://postgres:postgres@postgresql:5432/postgres", "--default-artifact-root", "/mlflow/artifacts", "--host", "0.0.0.0"]

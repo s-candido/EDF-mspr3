@@ -1,13 +1,28 @@
 
 
-## Lancer la Base PostgreSQL
+## Lancer la Base PostgreSQL et MLFlow
 
 ```bash
-docker build -t postgres_db .
+docker-compose build
 ```
 
 ```bash
-docker run -d -p 5441:5432 --name postgres_db postgres_db
+docker-compose up -d
+```
+
+La Base de Données est accessible sur : 
+
+```py
+HOST="localhost"
+DB="postgres"
+USER="postgres"
+PASSWORD="postgres"
+PORT=5441
+```
+MLFlow est accessible sur : 
+
+```sh
+http://localhost:5000
 ```
 
 ## Infrastructure

@@ -15,7 +15,6 @@ services:
     networks:
       - edf_network
 
-
   postgresql:
     image: postgres:latest
     build:
