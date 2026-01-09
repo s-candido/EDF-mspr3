@@ -12,6 +12,7 @@ from ingestion.downloader import download_and_extract
 from sklearn.model_selection import train_test_split
 import joblib
 import os
+import pandas as pd
 
 DATA_DIR = "../data"
 TARGET = "consommation"
@@ -22,8 +23,13 @@ df = load_all_data(DATA_DIR)
 
 df = create_features(df)
 
+df[TARGET] = pd.to_numeric(df[TARGET], errors="coerce")
+
 X = df.drop(columns=[TARGET])
 y = df[TARGET]
+
+X = X.fillna(0)
+y = y.fillna(0)
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
