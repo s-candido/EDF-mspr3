@@ -14,6 +14,9 @@ docker run -d -p 5441:5432 --name postgres_db postgres_db
 
 ```mermaid
 flowchart TD
+    subgraph MLFlow
+        G[MLFlow Registery]
+    end
     subgraph Airflow DAG
         T[API - Open météo] -->|API Call| E(table meteo_data)
         A[Data - xls] -->|Download| B(Local Folder)
@@ -21,7 +24,7 @@ flowchart TD
         C -->|Aggregation| D
         E -->|Aggregation| D[table final_features - PARTITION per YEAR]
         D -->|Train / Evaluate| F[Train / Test Models]
-        F -->|Save Models| G[MLFlow Docker]
+        F -->|Save Models| G
     end
 ```
 
