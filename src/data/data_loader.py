@@ -32,7 +32,12 @@ def _load_single_file(filepath: Path) -> pd.DataFrame:
 
         for sep in [";", ",", "\t"]:
             try:
-                df_try = pd.read_csv(path, sep=sep, encoding="latin1")
+                df_try = pd.read_csv(
+                    path,
+                    sep=sep,
+                    encoding="latin1",
+                    low_memory=False
+                )                
                 if df_try.shape[1] > best_cols:
                     best_cols = df_try.shape[1]
                     best_df = df_try
@@ -84,7 +89,7 @@ def load_all_data(data_dir: str) -> pd.DataFrame:
             all_dfs.append(df)
 
     if not all_dfs:
-        raise ValueError("Aucun fichier de données valide trouvé dans le dossier data/")
+        return pd.DataFrame()
 
     df_final = pd.concat(all_dfs, ignore_index=True)
     return df_final

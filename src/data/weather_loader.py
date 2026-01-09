@@ -40,7 +40,7 @@ url = "https://archive-api.open-meteo.com/v1/archive"
 
 all_cities_data = []
 
-def fetch_weather(start_date="2020-01-01", end_date="2020-12-31") -> pd.DataFrame :
+def fetch_weather(start_date= str, end_date= str) -> pd.DataFrame :
 
     for city, (lat, lon) in CITIES.items():
         
@@ -88,4 +88,3 @@ def fetch_weather(start_date="2020-01-01", end_date="2020-12-31") -> pd.DataFram
     return pd.concat(all_cities_data, ignore_index=True)
         
         
-fetch_weather("2020-01-01", "2020-12-31")

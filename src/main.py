@@ -1,5 +1,5 @@
 from data.data_loader import load_all_data
-from data.weather_loader import *
+from data.weather_loader import fetch_weather
 
 from features.features import create_features
 from features.weather_features import *
@@ -15,6 +15,8 @@ import os
 
 DATA_DIR = "../data"
 TARGET = "consommation"
+
+download_and_extract(start_year=2012, target_dir="data")
 
 df = load_all_data(DATA_DIR)
 
@@ -44,6 +46,10 @@ for name, model in models.items():
 os.makedirs("../models", exist_ok=True)
 joblib.dump(best_model, "../models/model.joblib")
 
-download_and_extract(start_year=2012, target_dir="data")
+
+fetch_weather("2020-01-01", "2020-12-31")
+
 
 print(f"Modèle retenu : {best_name} (R2={best_r2:.4f})")
+
+
