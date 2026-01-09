@@ -5,3 +5,7 @@ requests-cache
 retry-requests 
 numpy 
 pandas
+scikit-learn
+seaborn
+numpy
+matplotlib
