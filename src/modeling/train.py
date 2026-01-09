@@ -2,6 +2,9 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.linear_model import LinearRegression
 
+from utils.timer import timer
+
+@timer("Entraînement du modèle")
 def train_models(X, y):
     models = {
         "LinearRegression": LinearRegression(),
