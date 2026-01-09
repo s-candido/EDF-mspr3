@@ -24,3 +24,17 @@ flowchart TD
         F -->|Save Models| G[MLFlow Docker]
     end
 ```
+
+Pour 26 Janvier :
+
+- Modèle à monter qui tourne avec bon score
+- Dockeriser si possible
+
+Sebastien : 
+- 
+
+Cyril :
+- 
+
+Hugo :
+- Analyse exploratoire + Matrice de corrélation
