@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  mlflow:
+    build:
+      context: ./mlflow
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlflow/artifacts:/mlflow/artifacts
+      - ./mlflow/mlflow.db:/mlflow/mlflow.db
+    environment:
+      - MLFLOW_TRACKING_URI=http://localhost:5000
+    networks:
+      - edf_network
+
+  postgresql:
+    image: postgres:latest
+    build:
+      context: ./postgresql
+      dockerfile: Dockerfile
+    ports:
+      - "5441:5432"
+    environment:
+      POSTGRES_HOST: localhost
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_PORT: 5432
+    volumes:
+      - ./postgresql/data:/var/lib/postgresql
+    networks:
+      - edf_network
+
+networks:
+  edf_network:
+    driver: bridge
