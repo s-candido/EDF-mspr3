@@ -33,5 +33,16 @@ ENV MY_LOCAL_ASSETS=/opt/airflow/local-assets/
 
 # Copy python scripts and configurations
 COPY src/ ${MY_LOCAL_ASSETS}
-# Copy test raw input audio data since for this demo we dont have any cloud storage option
-COPY data/ ${MY_LOCAL_ASSETS}/raw_input_data/
+
+# Instead of copying the data, connect to the Postgresql DB to get the data
+#COPY data/ ${MY_LOCAL_ASSETS}/raw_input_data/
+
+
+# Create Airflow admin user during image build
+RUN airflow users create \
+    --role Admin \
+    --username admin \
+    --email admin@example.com \
+    --firstname Admin \
+    --lastname User \
+    --password admin

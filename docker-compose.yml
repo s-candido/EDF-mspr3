@@ -16,13 +16,19 @@ services:
       - ./mlflow:/mlflow/artifacts
       - ./dags:/opt/airflow/dags
     networks:
-      - backend
+      - edf_network
     env_file:
       - ./env_files/.env
       - ./env_files/secrets.env
+    environment:
+      AIRFLOW_ADMIN_USERNAME: admin
+      AIRFLOW_ADMIN_PASSWORD: admin
+      AIRFLOW_ADMIN_EMAIL: admin@example.com
+      AIRFLOW_ADMIN_FIRSTNAME: Admin
+      AIRFLOW_ADMIN_LASTNAME: User
     command: standalone
 
-  # mlfow server with postgresql db backend
+  # mlfow server with postgresql db edf_network
   mlflow:
     build:
       context: .
@@ -34,19 +40,19 @@ services:
       - ./mlflow:/mlflow/artifacts
       - ./:/workspace/
     depends_on:
-      postgresql:
+      db_mlflow:
         condition: service_healthy
     networks:
-      - backend
+      - edf_network
     env_file:
       - ./env_files/.env
       - ./env_files/secrets.env
     command: /tmp/start_mlflow.sh
 
   # db backend for mlflow
-  postgresql:
+  db_mlflow:
     image: postgres:10.5
-    container_name: postgresql
+    container_name: db_mlflow
     expose:
       - "5432"
     env_file:
@@ -55,9 +61,9 @@ services:
     hostname: postgresql
     shm_size: 256mb
     volumes:
-      - ./dbs:/var/lib/postgresql/data
+      - ./dbs_mlflow:/var/lib/postgresql/data
     networks:
-      - backend
+      - edf_network
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mlflow -d mlflow-db"]
@@ -66,10 +72,32 @@ services:
       retries: 5
 
 
+  edf_postgresl:
+    container_name: edf_postgresl
+    image: postgres:latest
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.postgres
+    ports:
+      - "5441:5432"
+    environment:
+      POSTGRES_HOST: localhost
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_PORT: 5432
+    volumes:
+      - ./postgresql_data:/var/lib/postgresql
+    networks:
+      - edf_network
+
+
 networks:
-  backend:
+  edf_network:
     driver: bridge
 
 volumes:
-    airflowdata:
-    mlflow:
+  airflowdata:
+  mlflow:
+  dbs_mlflow:
+  postgresql_data:
