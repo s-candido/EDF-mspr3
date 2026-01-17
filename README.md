@@ -25,6 +25,29 @@ MLFlow est accessible sur :
 http://localhost:5000
 ```
 
+Ne jamais toucher le dossier `mlflow/`
+
+Pour Tester, essayer de pusher un modèle avec : 
+
+```bash
+python src/mlflow/push_model_to_mlflow.py
+```
+
+Si Vous avez ce message : 
+
+```
+PermissionError: [Errno 13] Permission denied: ./mlflow/artifacts/
+```
+
+Faites cette commande à la racine et réessayez : 
+
+```bash
+chmod -R 777 mlflow
+```
+
+
+
+
 ## Infrastructure
 
 ```mermaid

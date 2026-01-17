@@ -1,38 +1,75 @@
-version: '3.8'
 
+version: '3'
 services:
+
+  airflow:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.airflow
+    container_name: airflow
+    ports:
+      - 8080:8080
+    depends_on:
+      - mlflow
+    volumes:
+      - airflowdata:/tmp/airflow/artifacts/
+      - ./mlflow:/mlflow/artifacts
+      - ./dags:/opt/airflow/dags
+    networks:
+      - backend
+    env_file:
+      - ./env_files/.env
+      - ./env_files/secrets.env
+    command: standalone
+
+  # mlfow server with postgresql db backend
   mlflow:
     build:
-      context: ./mlflow
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./docker/Dockerfile.mlflow
+    container_name: mlflow
     ports:
-      - "5000:5000"
+      - 5000:5000
     volumes:
-      - ./mlflow/artifacts:/mlflow/artifacts
-      - ./mlflow/mlflow.db:/mlflow/mlflow.db
-    environment:
-      - MLFLOW_TRACKING_URI=http://localhost:5000
+      - ./mlflow:/mlflow/artifacts
+      - ./:/workspace/
+    depends_on:
+      postgresql:
+        condition: service_healthy
     networks:
-      - edf_network
+      - backend
+    env_file:
+      - ./env_files/.env
+      - ./env_files/secrets.env
+    command: /tmp/start_mlflow.sh
 
+  # db backend for mlflow
   postgresql:
-    image: postgres:latest
-    build:
-      context: ./postgresql
-      dockerfile: Dockerfile
-    ports:
-      - "5441:5432"
-    environment:
-      POSTGRES_HOST: localhost
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_PORT: 5432
+    image: postgres:10.5
+    container_name: postgresql
+    expose:
+      - "5432"
+    env_file:
+      - ./env_files/.env
+      - ./env_files/secrets.env
+    hostname: postgresql
+    shm_size: 256mb
     volumes:
-      - ./postgresql/data:/var/lib/postgresql
+      - ./dbs:/var/lib/postgresql/data
     networks:
-      - edf_network
+      - backend
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mlflow -d mlflow-db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 
 networks:
-  edf_network:
+  backend:
     driver: bridge
+
+volumes:
+    airflowdata:
+    mlflow:
