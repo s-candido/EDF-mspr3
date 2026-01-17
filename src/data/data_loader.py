@@ -36,7 +36,9 @@ def _load_single_file(filepath: Path) -> pd.DataFrame:
                     path,
                     sep=sep,
                     encoding="latin1",
-                    low_memory=False
+                    low_memory=False,
+                    dtype=str,
+                    index_col=False
                 )                
                 if df_try.shape[1] > best_cols:
                     best_cols = df_try.shape[1]
@@ -57,13 +59,7 @@ def _load_single_file(filepath: Path) -> pd.DataFrame:
 
     # Nettoyage des colonnes
     df.columns = [_clean_colname(c) for c in df.columns]
-
-    if "date" in df.columns:
-        df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d", errors="coerce")
-
-    if "heures" in df.columns:
-        df["heures"] = pd.to_numeric(df["heures"], errors="coerce")
-
+    
     df["source_file"] = filepath.name
 
     return df

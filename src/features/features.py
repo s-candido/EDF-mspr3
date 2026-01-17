@@ -1,32 +1,64 @@
 import pandas as pd
 
-def create_features(df: pd.DataFrame) -> pd.DataFrame:
+def aggregate_hourly(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
-    # features
-    if "date" in df.columns:
-        df["day"] = df["date"].dt.day
-        df["month"] = df["date"].dt.month
-        df["dayofweek"] = df["date"].dt.dayofweek
-        df["weekend"] = df["dayofweek"].isin([5, 6]).astype(int)
+    # Nettoyage ND → NaN
+    df = df.replace("ND", pd.NA)
 
-    drop_cols = [
+    # Création datetime à partir de date + heures
+    df["datetime"] = pd.to_datetime(
+        df["date"].astype(str) + " " + df["heures"].astype(str),
+        errors="coerce"
+    )
+
+    # Clé horaire
+    df["hour_ts"] = df["datetime"].dt.floor("h")
+
+    # Colonnes numériques
+    numeric_cols = df.select_dtypes(include="number").columns
+
+    agg_dict = {}
+
+    for col in numeric_cols:
+        if col == "consommation":
+            agg_dict[col] = "mean"
+
+    # Colonnes non numériques
+    non_numeric_cols = df.columns.difference(numeric_cols)
+    for col in non_numeric_cols:
+        if col not in ["datetime", "hour_ts"]:
+            agg_dict[col] = "first"
+
+    hourly_df = (
+        df.groupby("hour_ts")
+          .agg(agg_dict)
+          .reset_index()
+          .rename(columns={"hour_ts": "datetime"})
+    )
+
+    return hourly_df
+
+
+
+def create_features(df: pd.DataFrame) -> pd.DataFrame:
+    df = aggregate_hourly(df)
+
+    df["hour"] = df["datetime"].dt.hour
+    df["day"] = df["datetime"].dt.day
+    df["month"] = df["datetime"].dt.month
+    df["dayofweek"] = df["datetime"].dt.dayofweek
+    df["weekend"] = df["dayofweek"].isin([5, 6]).astype(int)
+
+    df.drop(columns=[
         "perimetre",
         "nature",
         "source_file",
         "date",
-    ]
-    df.drop(columns=[c for c in drop_cols if c in df.columns], inplace=True)
-
-    # Forcer toutes les colonnes en numérique 
-    for col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
-
-    # valeurs manquantes
+        "heures",
+        "datetime"
+    ], errors="ignore", inplace=True)
+    
     df = df.fillna(0)
-
-    # garder uniquement les lignes avec consommation
-    if "consommation" in df.columns:
-        df = df[df["consommation"] > 0]
 
     return df
