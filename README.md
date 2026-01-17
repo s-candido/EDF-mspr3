@@ -50,6 +50,13 @@ chmod -R 777 mlflow
 
 ## Infrastructure
 
+![alt text](assets/img/infrastructure.png)
+
+
+
+## Diagramme de flux
+
+
 ```mermaid
 flowchart TD
     subgraph MLFlow
