@@ -51,8 +51,8 @@ for name, model in models.items():
         best_r2 = metrics["R2"]
         best_name, best_model = name, model
 
-os.makedirs("../models", exist_ok=True)
-joblib.dump(best_model, "../models/model.joblib")
+os.makedirs("./src/models", exist_ok=True)
+joblib.dump(best_model, "./src/models/model.joblib")
 
 
 fetch_weather("2020-01-01", "2020-12-31")

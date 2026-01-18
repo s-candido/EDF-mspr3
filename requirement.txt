@@ -9,6 +9,6 @@ scikit-learn
 seaborn
 numpy
 matplotlib
-mlflow
+mlflow==2.19.0
 joblib
-
+psycopg2-binary

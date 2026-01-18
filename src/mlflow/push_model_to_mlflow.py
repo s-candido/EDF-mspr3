@@ -9,18 +9,25 @@ import mlflow
 import mlflow.sklearn
 import joblib
 import os
+import argparse
 
 MLFLOW_URL="http://localhost:5000"
 
 # Name of the model to save in MLflow Model Registry
 MODEL_NAME="MODEL_EDF"
 
-# Path of the local model file to import 
-IMPORT_MODEL_PATH="model.joblib"
+# Default path of the local model file to import 
+DEFAULT_MODEL_PATH="./src/models/model.joblib"
+
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description='Push a model to MLflow')
+parser.add_argument('--model_path', type=str, default=DEFAULT_MODEL_PATH,
+                    help=f'Path to the model file to import (default: {DEFAULT_MODEL_PATH})')
+args = parser.parse_args()
 
 mlflow.set_tracking_uri(MLFLOW_URL)
 
-model_path = joblib.load(IMPORT_MODEL_PATH)
+model_path = joblib.load(str(args.model_path))
 
 model_name = MODEL_NAME
 
@@ -29,7 +36,7 @@ mlflow.set_experiment("EDF_Model_Experiment")
 
 with mlflow.start_run():
     # Log the artifact
-    mlflow.log_artifact("model.joblib", artifact_path=model_name)
+    mlflow.log_artifact(args.model_path, artifact_path=model_name)
     
     # Log the sklearn model
     mlflow.sklearn.log_model(model_path, artifact_path=model_name)
