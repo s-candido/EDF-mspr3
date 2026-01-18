@@ -9,7 +9,5 @@ COPY infra/* /tmp/
 # Add executable permissions to the script
 RUN chmod +x /tmp/start_mlflow.sh
 
-RUN chmod +x mlflow/
-
 # Install MLFlow for remote tracking
 RUN python -m pip install mlflow psycopg2-binary

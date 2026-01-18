@@ -1,168 +1,253 @@
-import psycopg2
-import requests
-import zipfile
-import io
-import csv
+# Import necessary libraries
+import pandas as pd
+import numpy as np
 from pathlib import Path
+import unicodedata
+import re
+import psycopg2
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = PROJECT_ROOT / "data"
-
-BASE_URL = (
-    "https://eco2mix.rte-france.com/download/eco2mix/"
-    "eCO2mix_RTE_Annuel-Definitif_{year}.zip"
-)
+# Constants
+DATA_DIR = "../data"
+NEW_COLUMNS = [
+    "Périmètre", "Nature", "Date", "Heures", "Consommation", "Prévision_J_1", "Prévision_J",
+    "Fioul", "Charbon", "Gaz", "Nucléaire", "Eolien", "Solaire", "Hydraulique", "Pompage",
+    "Bioénergies", "Ech_physiques", "Taux_de_Co2", "Ech_comm_Angleterre", "Ech_comm_Espagne",
+    "Ech_comm_Italie", "Ech_comm_Suisse", "Ech_comm_Allemagne_Belgique", "Fioul_TAC",
+    "Fioul_Cogén", "Fioul_Autres", "Gaz_TAC", "Gaz_Cogén", "Gaz_CCG", "Gaz_Autres",
+    "Hydraulique_Fil_de_leau_Eclusée", "Hydraulique_Lacs", "Hydraulique_STEP_turbinage",
+    "Bioénergies_Déchets", "Bioénergies_Biomasse", "Bioénergies_Biogaz", "Stockage_batterie",
+    "Déstockage_batterie", "Eolien_terrestre", "Eolien_offshore"
+]
+SUPPORTED_EXTENSIONS = [".csv", ".xls", ".xlsx"]
 
 # Database credentials
-HOST = "localhost"
-DB = "postgres"
-USER = "postgres"
-PASSWORD = "postgres"
-PORT = 5441
+DB_CONFIG = {
+    "host": "localhost",
+    "database": "postgres",
+    "user": "postgres",
+    "password": "postgres",
+    "port": 5441
+}
+TABLE_NAME = "meteo_all_cities"
 
-def download_and_extract(
-    start_year: int = 2012,
-    target_dir: str = "../data"
-) -> list[Path]:
-    """
-    Télécharge et dézippe automatiquement les données éCO2mix annuelles
-    depuis start_year jusqu'à la dernière année disponible.
+# Function to clean column names
+def clean_colname(col: str) -> str:
+    if not isinstance(col, str):
+        col = str(col)
+    col = col.strip().replace("�", "e").replace("?", "e")
+    col = unicodedata.normalize("NFKD", col).encode("ascii", "ignore").decode("ascii")
+    col = col.lower()
+    col = re.sub(r"[^a-z0-9]+", "_", col)
+    col = re.sub(r"_+", "_", col).strip("_")
+    return col
 
-    - S'arrête dès qu'une année n'est plus disponible
-    - Extrait les fichiers directement dans data
-    - Évite les doublons
-    """
+# Function to load a single file
+def load_single_file(filepath: Path) -> pd.DataFrame:
+    suffix = filepath.suffix.lower()
 
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    def read_csv_smart(path):
+        best_df = None
+        best_cols = 0
+        for sep in [";", ",", "\t"]:
+            try:
+                df_try = pd.read_csv(
+                    path, sep=sep, encoding="latin1", low_memory=False, dtype=str, index_col=False
+                )
+                if df_try.shape[1] > best_cols:
+                    best_cols = df_try.shape[1]
+                    best_df = df_try
+            except Exception:
+                continue
+        if best_df is None or best_cols == 1:
+            raise ValueError("Impossible de détecter le séparateur CSV")
+        return best_df
 
-    extracted_files = []
-    year = start_year
-
-    while True:
-        url = BASE_URL.format(year=year)
-        print(f"Vérification : {url}")
-
-        response = requests.get(url)
-
-        if response.status_code != 200:
-            print(f"Fin de téléchargement à l'année {year - 1}")
-            break
-
-        print(f"download : {year}")
-
-        with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
-            for member in zip_file.namelist():
-                output_file = DATA_DIR / member
-
-                # Éviter de réécrire si le fichier existe déjà
-                if output_file.exists():
-                    print(f"Fichier déjà présent : {output_file.name}")
-                    continue
-
-                zip_file.extract(member, DATA_DIR)
-                extracted_files.append(output_file)
-
-        year += 1
-
-    return extracted_files
-
-def store_csv_to_postgres(file_path: Path, table_name: str):
-    """
-    Store the content of a CSV file into a PostgreSQL table.
-
-    Args:
-        file_path (Path): Path to the CSV file.
-        table_name (str): Name of the table in PostgreSQL.
-    """
     try:
-        # Connect to PostgreSQL
-        conn = psycopg2.connect(
-            database=DB, user=USER, password=PASSWORD, host=HOST, port=PORT
-        )
-        curs = conn.cursor()
-
-        # Create the table if it doesn't exist
-        curs.execute(f'''
-            CREATE TABLE IF NOT EXISTS {table_name} (
-                perimetre TEXT,
-                nature TEXT,
-                date DATE,
-                heures TIME,
-                consommation FLOAT,
-                prevision_j_1 FLOAT,
-                prevision_j FLOAT,
-                fioul FLOAT,
-                charbon FLOAT,
-                gaz FLOAT,
-                nucleaire FLOAT,
-                eolien FLOAT,
-                solaire FLOAT,
-                hydraulique FLOAT,
-                pompage FLOAT,
-                bioenergies FLOAT,
-                ech_physiques FLOAT,
-                taux_de_co2 FLOAT,
-                ech_comm_angleterre FLOAT,
-                ech_comm_espagne FLOAT,
-                ech_comm_italie FLOAT,
-                ech_comm_suisse FLOAT,
-                ech_comm_allemagne_belgique FLOAT,
-                fioul_tac FLOAT,
-                fioul_cogen FLOAT,
-                fioul_autres FLOAT,
-                gaz_tac FLOAT,
-                gaz_cogen FLOAT,
-                gaz_ccg FLOAT,
-                gaz_autres FLOAT,
-                hydraulique_fil_de_leau_eclusee FLOAT,
-                hydraulique_lacs FLOAT,
-                hydraulique_step_turbinage FLOAT,
-                bioenergies_dechets FLOAT,
-                bioenergies_biomasse FLOAT,
-                bioenergies_biogaz FLOAT
-            )
-        ''')
-        conn.commit()
-
-        # Read and insert data from the CSV file
-        with open(file_path, 'r', encoding='ISO-8859-1') as csv_file:  # Use ISO-8859-1 encoding for special characters
-            reader = csv.reader(csv_file, delimiter=';')
-            headers = next(reader)  # Skip the header row
-            for row in reader:
-                # Ensure the row has the correct number of columns
-                if len(row) != len(headers):
-                    print(f"Skipping row due to incorrect number of columns: {row}")
-                    continue
-
-                # Replace empty strings with None for NULL values in PostgreSQL
-                row = [None if value == '' else value for value in row]
-
-                # Insert data into the table
-                curs.execute(f'''
-                    INSERT INTO {table_name} (
-                        perimetre, nature, date, heures, consommation, prevision_j_1, prevision_j, fioul, charbon, gaz,
-                        nucleaire, eolien, solaire, hydraulique, pompage, bioenergies, ech_physiques, taux_de_co2,
-                        ech_comm_angleterre, ech_comm_espagne, ech_comm_italie, ech_comm_suisse, ech_comm_allemagne_belgique,
-                        fioul_tac, fioul_cogen, fioul_autres, gaz_tac, gaz_cogen, gaz_ccg, gaz_autres,
-                        hydraulique_fil_de_leau_eclusee, hydraulique_lacs, hydraulique_step_turbinage,
-                        bioenergies_dechets, bioenergies_biomasse, bioenergies_biogaz
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', row)
-
-        conn.commit()
-        print(f"Data from {file_path.name} has been inserted into {table_name}.")
-
+        if suffix in [".csv", ".xls", ".xlsx"]:
+            df = read_csv_smart(filepath)
+        else:
+            raise ValueError(f"Unsupported file format: {suffix}")
     except Exception as e:
-        print(f"Error: {e}")
-    finally:
-        if conn:
-            conn.close()
+        raise RuntimeError(f"Error loading {filepath.name}: {e}")
+
+    # Clean column names
+    df.columns = [clean_colname(c) for c in df.columns]
+    df["source_file"] = filepath.name
+    return df
+
+# Function to load all data from a directory
+def load_all_data(data_dir: str) -> pd.DataFrame:
+    data_path = Path(data_dir)
+    if not data_path.exists():
+        raise FileNotFoundError(f"Directory not found: {data_dir}")
+
+    all_dfs = []
+    for file in data_path.iterdir():
+        if file.suffix.lower() in SUPPORTED_EXTENSIONS:
+            print(f"Loading: {file.name}")
+            df = load_single_file(file)
+            all_dfs.append(df)
+
+    if not all_dfs:
+        return pd.DataFrame()
+
+    return pd.concat(all_dfs, ignore_index=True)
+
+# Function to handle column mismatch
+def handle_column_mismatch(df: pd.DataFrame, new_columns: list) -> pd.DataFrame:
+    if len(df.columns) < len(new_columns):
+        print(f"Column count mismatch: File has {len(df.columns)} columns, but {len(new_columns)} are expected.")
+        print("Adding missing columns with None values...")
+        for missing_col in new_columns[len(df.columns):]:
+            df[missing_col] = None
+    elif len(df.columns) > len(new_columns):
+        print(f"Column count mismatch: File has {len(df.columns)} columns, but {len(new_columns)} are expected.")
+        print("Truncating extra columns...")
+        df = df.iloc[:, :len(new_columns)]
+
+    if len(df.columns) != len(new_columns):
+        raise ValueError(f"Final column count mismatch: DataFrame has {len(df.columns)} columns, but {len(new_columns)} are expected.")
+
+    df.columns = [col.strip().replace(" ", "_").replace("-", "_").replace("?", "e").lower() for col in new_columns]
+    return df
+
+# Function to analyze and cast DataFrame columns to correct data types
+def cast_dataframe_columns(df: pd.DataFrame) -> pd.DataFrame:
+    data_types = {
+        "périmètre": "str",
+        "nature": "str",
+        "date": "str",
+        "heures": "str",
+        "consommation": "Int64",
+        "prévision_j_1": "Int64",
+        "prévision_j": "Int64",
+        "fioul": "Int64",
+        "charbon": "Int64",
+        "gaz": "Int64",
+        "nucléaire": "Int64",
+        "eolien": "Int64",
+        "solaire": "Int64",
+        "hydraulique": "Int64",
+        "pompage": "Int64",
+        "bioénergies": "Int64",
+        "ech_physiques": "Int64",
+        "taux_de_co2": "Int64",
+        "ech_comm_angleterre": "Int64",
+        "ech_comm_espagne": "Int64",
+        "ech_comm_italie": "Int64",
+        "ech_comm_suisse": "Int64",
+        "ech_comm_allemagne_belgique": "Int64",
+        "fioul_tac": "Int64",
+        "fioul_cogén": "Int64",
+        "fioul_autres": "Int64",
+        "gaz_tac": "Int64",
+        "gaz_cogén": "Int64",
+        "gaz_ccg": "Int64",
+        "gaz_autres": "Int64",
+        "hydraulique_fil_de_leau_eclusée": "Int64",
+        "hydraulique_lacs": "Int64",
+        "hydraulique_step_turbinage": "Int64",
+        "bioénergies_déchets": "Int64",
+        "bioénergies_biomasse": "Int64",
+        "bioénergies_biogaz": "Int64",
+        "stockage_batterie": "str",
+        "déstockage_batterie": "Int64",
+        "eolien_terrestre": "Int64",
+        "eolien_offshore": "Int64"
+    }
+    for col, dtype in data_types.items():
+        if dtype == "str":
+            df[col] = df[col].astype(str)
+        elif dtype == "Int64":
+            df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+    return df
+
+# Function to create the table in PostgreSQL
+def create_table(conn, table_name):
+    curs = conn.cursor()
+    curs.execute(f'''
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            périmètre TEXT,
+            nature TEXT,
+            date TEXT,
+            heures TEXT,
+            consommation INTEGER,
+            prévision_j_1 INTEGER,
+            prévision_j INTEGER,
+            fioul INTEGER,
+            charbon INTEGER,
+            gaz INTEGER,
+            nucléaire INTEGER,
+            eolien INTEGER,
+            solaire INTEGER,
+            hydraulique INTEGER,
+            pompage INTEGER,
+            bioénergies INTEGER,
+            ech_physiques INTEGER,
+            taux_de_co2 INTEGER,
+            ech_comm_angleterre INTEGER,
+            ech_comm_espagne INTEGER,
+            ech_comm_italie INTEGER,
+            ech_comm_suisse INTEGER,
+            ech_comm_allemagne_belgique INTEGER,
+            fioul_tac INTEGER,
+            fioul_cogén INTEGER,
+            fioul_autres INTEGER,
+            gaz_tac INTEGER,
+            gaz_cogén INTEGER,
+            gaz_ccg INTEGER,
+            gaz_autres INTEGER,
+            hydraulique_fil_de_leau_eclusée INTEGER,
+            hydraulique_lacs INTEGER,
+            hydraulique_step_turbinage INTEGER,
+            bioénergies_déchets INTEGER,
+            bioénergies_biomasse INTEGER,
+            bioénergies_biogaz INTEGER,
+            stockage_batterie TEXT,
+            déstockage_batterie INTEGER,
+            eolien_terrestre INTEGER,
+            eolien_offshore INTEGER
+        )
+    ''')
+    conn.commit()
+
+# Function to insert data into PostgreSQL
+def insert_data_from_df(conn, table_name, df):
+    curs = conn.cursor()
+    for _, row in df.iterrows():
+        # Replace NAType with None
+        row = row.where(pd.notnull(row), None)
+        
+        db_id = f"{row['périmètre']}_{row['date']}_{row['heures']}"
+        curs.execute(f"SELECT * FROM {table_name} WHERE périmètre=%s AND date=%s AND heures=%s", 
+                     (row['périmètre'], row['date'], row['heures']))
+        if not curs.fetchone():
+            try:
+                curs.execute(f'''
+                    INSERT INTO {table_name} VALUES ({','.join(['%s'] * len(row))})
+                ''', tuple(row))
+                conn.commit()
+            except Exception as e:
+                print(f"Error inserting data: {db_id}. Error: {e}")
+        else:
+            print(f"Exists: {db_id}")
+
+# Main function to execute the workflow
+def main():
+    # Load data
+    df = load_all_data(DATA_DIR)
+    df = handle_column_mismatch(df, NEW_COLUMNS)
+    df = cast_dataframe_columns(df)
+
+    # Connect to PostgreSQL
+    conn = psycopg2.connect(**DB_CONFIG)
+
+    # Create table and insert data
+    create_table(conn, TABLE_NAME)
+    insert_data_from_df(conn, TABLE_NAME, df)
+
+    # Close connection
+    conn.close()
 
 if __name__ == "__main__":
-    # Download and extract CSV files
-    csv_files = download_and_extract()
-
-    # Store each CSV file into PostgreSQL
-    for csv_file in csv_files:
-        store_csv_to_postgres(csv_file, table_name="eco2mix_data")
+    main()
