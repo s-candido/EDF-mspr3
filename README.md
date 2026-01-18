@@ -77,6 +77,9 @@ Faites cette commande à la racine et réessayez :
 chmod -R 777 mlflow
 ```
 
+### Pour Upgrade la version de Airflow (en python 3.7 actuellement) :
+
+https://medium.com/@opcfrance/setting-up-apache-airflow-with-docker-a-comprehensive-guide-with-examples-c041fed1c3f5
 
 
 
