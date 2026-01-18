@@ -1,6 +1,6 @@
 # EDF MSPR3 - Gestion de la consommation énergétique avec MLFlow et AirFlow
 
-![alt text](assets/img/image.png)
+<img src="assets/img/image.png" alt="alt text" width="50%">
 
 
 ## Démarrage
