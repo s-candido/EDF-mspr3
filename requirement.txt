@@ -9,3 +9,6 @@ scikit-learn
 seaborn
 numpy
 matplotlib
+mlflow
+joblib
+

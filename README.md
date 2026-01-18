@@ -1,6 +1,9 @@
+# EDF MSPR3 - Gestion de la consommation énergétique avec MLFlow et AirFlow
+
+![alt text](assets/img/image.png)
 
 
-## Lancer la Base PostgreSQL et MLFlow
+## Démarrage
 
 ```bash
 docker-compose build
@@ -9,6 +12,16 @@ docker-compose build
 ```bash
 docker-compose up -d
 ```
+
+### Gestion et Versionning des Modèles : MLFlow
+
+MLFlow est accessible sur : 
+
+```sh
+http://localhost:5000
+```
+
+### Base de Données : PostgreSQL
 
 La Base de Données est accessible sur : 
 
@@ -19,13 +32,63 @@ USER="postgres"
 PASSWORD="postgres"
 PORT=5441
 ```
-MLFlow est accessible sur : 
+
+
+### Orchestration de Pipelines : AirFlow
+
+AirFlow est accessible sur : 
 
 ```sh
-http://localhost:5000
+http://localhost:8080
+```
+Avec ces identifiants :
+
+Username :
+```
+admin
 ```
 
+Mot de passe :
+```
+admin
+```
+
+
+## Détails MLFlow
+
+
+Ne jamais toucher le dossier `mlflow/`
+
+Pour Tester, essayer de pusher un modèle avec : 
+
+```bash
+python src/mlflow/push_model_to_mlflow.py
+```
+
+Si Vous avez ce message : 
+
+```
+PermissionError: [Errno 13] Permission denied: ./mlflow/artifacts/
+```
+
+Faites cette commande à la racine et réessayez : 
+
+```bash
+chmod -R 777 mlflow
+```
+
+
+
+
 ## Infrastructure
+
+![alt text](assets/img/infrastructure.png)
+
+
+
+
+## Diagramme de flux
+
 
 ```mermaid
 flowchart TD

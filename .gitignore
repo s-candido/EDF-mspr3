@@ -1,3 +1,7 @@
 __pycache__/
 /data
 /.qlty
+/.ruff_caches
+dbs_mlflow/
+postgresql_data/
+mlflow/

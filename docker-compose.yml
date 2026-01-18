@@ -1,25 +1,83 @@
-version: '3.8'
 
+version: '3'
 services:
-  mlflow:
+
+  airflow:
     build:
-      context: ./mlflow
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./docker/Dockerfile.airflow
+    container_name: airflow
     ports:
-      - "5000:5000"
+      - 8080:8080
+    depends_on:
+      - mlflow
     volumes:
-      - ./mlflow/artifacts:/mlflow/artifacts
-      - ./mlflow/mlflow.db:/mlflow/mlflow.db
-    environment:
-      - MLFLOW_TRACKING_URI=http://localhost:5000
+      - airflowdata:/tmp/airflow/artifacts/
+      - ./mlflow:/mlflow/artifacts
+      - ./dags:/opt/airflow/dags
     networks:
       - edf_network
+    env_file:
+      - ./env_files/.env
+      - ./env_files/secrets.env
+    environment:
+      AIRFLOW_ADMIN_USERNAME: admin
+      AIRFLOW_ADMIN_PASSWORD: admin
+      AIRFLOW_ADMIN_EMAIL: admin@example.com
+      AIRFLOW_ADMIN_FIRSTNAME: Admin
+      AIRFLOW_ADMIN_LASTNAME: User
+    command: standalone
 
-  postgresql:
+  # mlfow server with postgresql db edf_network
+  mlflow:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.mlflow
+    container_name: mlflow
+    ports:
+      - 5000:5000
+    volumes:
+      - ./mlflow:/mlflow/artifacts
+      - ./:/workspace/
+    depends_on:
+      db_mlflow:
+        condition: service_healthy
+    networks:
+      - edf_network
+    env_file:
+      - ./env_files/.env
+      - ./env_files/secrets.env
+    command: /tmp/start_mlflow.sh
+
+  # db backend for mlflow
+  db_mlflow:
+    image: postgres:10.5
+    container_name: db_mlflow
+    expose:
+      - "5432"
+    env_file:
+      - ./env_files/.env
+      - ./env_files/secrets.env
+    hostname: postgresql
+    shm_size: 256mb
+    volumes:
+      - ./dbs_mlflow:/var/lib/postgresql/data
+    networks:
+      - edf_network
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mlflow -d mlflow-db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+  edf_postgresl:
+    container_name: edf_postgresl
     image: postgres:latest
     build:
-      context: ./postgresql
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./docker/Dockerfile.postgres
     ports:
       - "5441:5432"
     environment:
@@ -29,10 +87,17 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_PORT: 5432
     volumes:
-      - ./postgresql/data:/var/lib/postgresql
+      - ./postgresql_data:/var/lib/postgresql
     networks:
       - edf_network
+
 
 networks:
   edf_network:
     driver: bridge
+
+volumes:
+  airflowdata:
+  mlflow:
+  dbs_mlflow:
+  postgresql_data:

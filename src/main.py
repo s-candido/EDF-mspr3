@@ -10,6 +10,8 @@ from modeling.evaluate import evaluate_model
 from ingestion.downloader import download_and_extract
 
 from sklearn.model_selection import train_test_split
+import mlflow
+
 import joblib
 import os
 import pandas as pd
