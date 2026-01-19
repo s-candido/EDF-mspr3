@@ -1,48 +1,25 @@
-FROM apache/airflow:2.2.4-python3.7
+FROM apache/airflow:2.5.1-python3.10
 
-# for installing poetry
+
+# Copy the requirements file
+COPY requirement.txt .
+
+# Install the dependencies from the requirements file
+RUN pip install --no-cache-dir -r requirement.txt
+
+# Copy the DAGs directory to the Airflow home directory
+COPY dags/ /opt/airflow/dags/
+
+# Copy the entrypoint script
+COPY infra/start_airflow.sh /entrypoint.sh
+
+# Switch to the root user to change permissions
 USER root
-
-# Install Poetry for better python dependency management and packaging
-#RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | POETRY_HOME=/opt/poetry \
-#    python - && \
-#     cd /usr/local/bin && \
-#     ln -s /opt/poetry/bin/poetry && \
-#     poetry config virtualenvs.create false
-
-#ENV AUDIO_CLASSIFIER_PKG=/tmp/custom-python-pkg/
-
-# Copy the python package to the container
-#COPY ./audio_classifier/ ${AUDIO_CLASSIFIER_PKG}
-
-# Note we are using this because we are using standard python operators in airflow to run dags
-# In future we could isolate this dependencies using docker operators in airflow
-#RUN cd ${AUDIO_CLASSIFIER_PKG} --no-root --no-interaction \
-#
-## Since we dont have a internal PyPi repo installing locally
-#RUN cd ${AUDIO_CLASSIFIER_PKG} && poetry build \
-#  && python -m pip install $(find ./dist -name '*.tar.gz') \
-#  && rm -rf dist
-
-# Cleanup package source code
-#RUN rm -r ${AUDIO_CLASSIFIER_PKG}*
-
+RUN chmod +x /entrypoint.sh
+RUN chmod +x /opt/airflow/dags/
+RUN chmod -R 755 /opt/airflow/dags/
+# Switch back to the airflow user
 USER airflow
 
-ENV MY_LOCAL_ASSETS=/opt/airflow/local-assets/
-
-# Copy python scripts and configurations
-COPY src/ ${MY_LOCAL_ASSETS}
-
-# Instead of copying the data, connect to the Postgresql DB to get the data
-#COPY data/ ${MY_LOCAL_ASSETS}/raw_input_data/
-
-
-# Create Airflow admin user during image build
-RUN airflow users create \
-    --role Admin \
-    --username admin \
-    --email admin@example.com \
-    --firstname Admin \
-    --lastname User \
-    --password admin
+# Set the entrypoint to the entrypoint script
+ENTRYPOINT ["/entrypoint.sh"]

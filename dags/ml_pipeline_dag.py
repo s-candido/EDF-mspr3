@@ -1,15 +1,20 @@
 import uuid
 from datetime import datetime
 from airflow import DAG
+from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.operators.dummy_operator import DummyOperator
+from src.main import run_ml_pipeline  # Import the functions from the script
 
 
 # Correlation id for training job (this can be also found on MLFLow tracking)
 correlation_id = uuid.uuid4()
 
+MY_LOCAL_ASSETS= "/opt/airflow/dags"
 
+
+# Define the DAG
 with DAG(
         dag_id="main_dag",
         schedule_interval=None,
@@ -19,20 +24,15 @@ with DAG(
     start = DummyOperator(task_id="start")
 
     # Task for running data preprocessing task
-    preprocessing_task = BashOperator(
+    preprocessing_task = PythonOperator(
         task_id="main_script_job",
-        bash_command="python ${MY_LOCAL_ASSETS}/src/main.py",
+        python_callable=run_ml_pipeline,
+        do_xcom_push=False,
         dag=dag
     )
 
-    # Task running our ML training job
-    training_task = BashOperator(
-        task_id="push_model_to_mlflow_job",
-        bash_command="python ${MY_LOCAL_ASSETS}/src/mlflow/push_model_to_mlflow.py --model_path ${MY_LOCAL_ASSETS}/src/models/model.joblib",
-        dag=dag
-    )
 
     complete = DummyOperator(task_id="complete")
 
     # Linear pipeline: start -> preprocessing -> training -> complete
-    start >> preprocessing_task >> training_task >> complete
+    start >> preprocessing_task >>  complete
