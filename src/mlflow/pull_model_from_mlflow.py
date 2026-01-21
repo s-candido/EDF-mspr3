@@ -36,7 +36,8 @@ def get_latest_model_version(model_name: str) -> int:
 if __name__ == "__main__":
     version = get_latest_model_version(MODEL_NAME)
     model_name = MODEL_NAME
-    model_uri = f"models:/{model_name}/{version}"
+    print(model_name)
+    model_uri = f"models:/{model_name}/latest"
     model = load_model(model_uri)
     print(" ------------------------- MLFLOW  ------------------------- " )
     print("Model loaded successfully!")

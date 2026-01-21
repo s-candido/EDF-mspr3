@@ -17,7 +17,7 @@ MLFLOW_URL="http://localhost:5000"
 MODEL_NAME="MODEL_EDF"
 
 # Default path of the local model file to import 
-DEFAULT_MODEL_PATH="./src/models/model.joblib"
+DEFAULT_MODEL_PATH="src/models/model.joblib"
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='Push a model to MLflow')
