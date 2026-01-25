@@ -7,7 +7,7 @@ import re
 import psycopg2
 
 # Constants
-DATA_DIR = "./data"
+DATA_DIR = "/opt/airflow/dags/src/data_folder"
 NEW_COLUMNS = [
     "Périmètre", "Nature", "Date", "Heures", "Consommation", "Prévision_J_1", "Prévision_J",
     "Fioul", "Charbon", "Gaz", "Nucléaire", "Eolien", "Solaire", "Hydraulique", "Pompage",

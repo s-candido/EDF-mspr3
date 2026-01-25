@@ -20,6 +20,7 @@ DB_CONFIG = {
 
 WEATHER_TABLE_NAME = "weather_data"
 FEATURES_TABLE_NAME = "features_data"
+DATA_DIR = "/opt/airflow/dags/src/data_folder"
 
 def create_weather_table(conn, table_name):
     curs = conn.cursor()
@@ -180,7 +181,7 @@ def load_weather_data_to_db(start_date="2020-01-01", end_date="2020-12-31"):
     finally:
         conn.close()
 
-def load_features_to_db(data_dir="../data"):
+def load_features_to_db(data_dir=DATA_DIR):
     print(f"Loading consumption data from {data_dir}")
     consumption_df = load_all_data(data_dir)
     
@@ -223,7 +224,7 @@ def load_features_to_db(data_dir="../data"):
     finally:
         conn.close()
 
-def run_full_pipeline(start_date="2020-01-01", end_date="2020-12-31", data_dir="../data"):
+def run_full_pipeline(start_date="2020-01-01", end_date="2020-12-31", data_dir=DATA_DIR):
     print("Starting full data pipeline...")
     
     load_weather_data_to_db(start_date, end_date)
@@ -235,5 +236,5 @@ if __name__ == "__main__":
     run_full_pipeline(
         start_date="2020-01-01",
         end_date="2020-12-31",
-        data_dir="../data"
+        data_dir=DATA_DIR
     )
