@@ -168,12 +168,12 @@ def run_performance_test(
             print(f"R2: {metrics['R2']:.4f}")
             print(f"RMSE: {metrics['RMSE']:.4f}")
             print(f"MAPE (%): {metrics['MAPE (%)']:.2f}")
+            mlflow.log_metric("Noise_level", noise_level)
 
-            if noise_level == 0.0:
-                results['baseline'] = metrics.copy()
-                mlflow.log_metric("baseline_R2", metrics['R2'])
-                mlflow.log_metric("baseline_RMSE", metrics['RMSE'])
-                mlflow.log_metric("baseline_MAPE", metrics['MAPE (%)'])
+            results['baseline'] = metrics.copy()
+            mlflow.log_metric("R2", metrics['R2'])
+            mlflow.log_metric("RMSE", metrics['RMSE'])
+            mlflow.log_metric("MAPE", metrics['MAPE (%)'])
 
         baseline = results['baseline']
         print("\nCalculating metric degradation...")
@@ -190,14 +190,15 @@ def run_performance_test(
             results['degradation']['R2'].append(r2_degradation)
             results['degradation']['RMSE'].append(rmse_degradation)
             results['degradation']['MAPE (%)'].append(mape_degradation)
+            
 
+            mlflow.log_metric("Noise_level", noise_level)
             mlflow.log_metric(f"R2_noise", results['metrics']['R2'][i])
             mlflow.log_metric(f"RMSE_noise", results['metrics']['RMSE'][i])
             mlflow.log_metric(f"MAPE_noise", results['metrics']['MAPE (%)'][i])
             mlflow.log_metric(f"R2_degradation", r2_degradation)
             mlflow.log_metric(f"RMSE_degradation", rmse_degradation)
             mlflow.log_metric(f"MAPE_degradation", mape_degradation)
-
         print("\n" + "="*60)
         print("PERFORMANCE TEST SUMMARY")
         print("="*60)

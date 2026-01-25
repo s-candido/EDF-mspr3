@@ -22,13 +22,13 @@ SUPPORTED_EXTENSIONS = [".csv", ".xls", ".xlsx"]
 
 # Database credentials
 DB_CONFIG = {
-    "host": "localhost",
+    "host": "edf_postgresl",
     "database": "postgres",
     "user": "postgres",
     "password": "postgres",
-    "port": 5441
+    "port": 5432
 }
-TABLE_NAME = "meteo_all_cities"
+TABLE_NAME = "edf_energy_data"
 
 # Function to clean column names
 def clean_colname(col: str) -> str:

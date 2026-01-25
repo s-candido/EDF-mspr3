@@ -74,9 +74,13 @@ def run_ml_pipeline(data_dir=DATA_DIR, target=TARGET, test_size=0.2, random_stat
     
     # Load and prepare data
     df = load_all_data(data_dir)
+    print("Source Files :", df["source_file"].unique().tolist())
+    source_files = df["source_file"].unique().tolist()
+    print("Features columns :", df.columns.tolist())
+    features = df.columns.tolist()
     df = create_features(df)
-    
-    # Handle target column
+    print(df.describe())
+    # Handle target columnEDF_Model_Experiment
     df[target] = pd.to_numeric(df[target], errors="coerce")
     
     X = df.drop(columns=[target])
@@ -116,6 +120,8 @@ def run_ml_pipeline(data_dir=DATA_DIR, target=TARGET, test_size=0.2, random_stat
 
     # Register model in MLflow without saving locally
     with mlflow.start_run():
+        mlflow.log_param("source_files", source_files)
+        mlflow.log_param("features", features)
         # Log params and metrics (strings → params, numbers → metrics)
         mlflow.log_param("model_type", best_name)
         mlflow.log_metric("R2", float(best_r2))

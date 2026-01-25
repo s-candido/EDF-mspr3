@@ -22,7 +22,7 @@ TARGET = "consommation"
 download_and_extract(start_year=2012, target_dir="data")
 
 df = load_all_data(DATA_DIR)
-
+print(df["source_file"].unique().tolist())
 df = create_features(df)
 
 df[TARGET] = pd.to_numeric(df[TARGET], errors="coerce")
