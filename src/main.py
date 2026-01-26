@@ -11,6 +11,7 @@ from ingestion.downloader import download_and_extract
 from db.ingestion_postgre import ingest_postgres
 from db.ingestion_clean_data import ingest_features
 from db.ingestion_weather import ingest_weather
+from db.ingestion_conso_meteo_sql import ingest_conso_meteo
 
 from data.db_loader import load_from_postgres
 
@@ -28,6 +29,8 @@ download_and_extract(start_year=2012, target_dir="data")
 ingest_postgres()
 
 ingest_weather(2012, 2023)
+
+ingest_conso_meteo()
 
 df = load_from_postgres()
 
