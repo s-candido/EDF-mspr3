@@ -77,6 +77,39 @@ Faites cette commande à la racine et réessayez :
 chmod -R 777 mlflow
 ```
 
+## Détails MLFlow
+
+
+Ne jamais toucher le dossier `mlflow/`
+
+Pour Tester, essayer de pusher un modèle avec : 
+
+```bash
+python src/mlflow/push_model_to_mlflow.py
+```
+
+Si Vous avez ce message : 
+
+```
+PermissionError: [Errno 13] Permission denied: ./mlflow/artifacts/
+```
+
+Faites cette commande à la racine et réessayez : 
+
+```bash
+chmod -R 777 mlflow
+```
+
+## Détails MLFlow
+
+Faites cette commande à la racine et réessayez : 
+
+```bash
+chmod -R 777 dags/data/
+```
+
+
+
 ### Pour Upgrade la version de Airflow (en python 3.7 actuellement) :
 
 https://medium.com/@opcfrance/setting-up-apache-airflow-with-docker-a-comprehensive-guide-with-examples-c041fed1c3f5
@@ -126,3 +159,24 @@ Cyril :
 
 Hugo :
 - Analyse exploratoire + Matrice de corrélation
+
+
+### Notes
+
+Data Processing --> [Clean Features] --> [Aggregate Features] ---(remove "consommation")--> [Prédictions(Partitioned by Month/Year)]
+Table agregated_features -----> Courbe Consommation réelle + Timestamp --------|
+Table predictions -----> Courbe Consommation prédite + Timestamp --------------L------> Comparaison des deux courbes sur UI
+
+
+
+MLOps : (à répéter en boucle)
+On prends 2016 - 2023
+- Prendre 3 années au hasard pour tester le modèle
+- Tester sur la 4 eme année
+
+
+- Dépendance à une API / Panne API
+- Etude des features --> Excabilité du modèle
+- Features Importance / Equilibre du modèle
+- Lien avec les logiques métiers
+- Monitoring du modèle (Data Drift / Concept Drift)

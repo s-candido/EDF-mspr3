@@ -4,18 +4,18 @@ import hashlib
 from pathlib import Path
 import pandas as pd
 
-from ingestion.downloader import download_and_extract
-from data.data_loader import _load_single_file
+from src.ingestion.downloader import download_and_extract
+from src.data.data_loader import _load_single_file
 
 DB_CONFIG = {
-    "host": "localhost",
+    "host": "edf_postgresql",
     "database": "postgres",
     "user": "postgres",
     "password": "postgres",
-    "port": 5441,
+    "port": 5432,
 }
 
-DATA_DIR = "../data"
+DATA_DIR = "/opt/airflow/dags/src/data_folder"
 TARGET_EXT = [".csv", ".xls", ".xlsx"]
 
 TABLE_DATA = "eco2mix_raw"
