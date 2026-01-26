@@ -8,7 +8,7 @@ from src.ingestion.downloader import download_and_extract
 from src.data.data_loader import _load_single_file
 
 DB_CONFIG = {
-    "host": "edf_postgresl",
+    "host": "edf_postgresql",
     "database": "postgres",
     "user": "postgres",
     "password": "postgres",

@@ -5,3 +5,5 @@ __pycache__/
 dbs_mlflow/
 postgresql_data/
 mlflow/
+dags/data/
+dags/src/folder_data/

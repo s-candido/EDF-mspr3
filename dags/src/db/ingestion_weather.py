@@ -1,10 +1,11 @@
 import psycopg2
 import pandas as pd
+import time
 
 from src.data.weather_loader import fetch_weather
 
 DB_CONFIG = {
-    "host": "edf_postgresl",
+    "host": "edf_postgresql",
     "database": "postgres",
     "user": "postgres",
     "password": "postgres",
@@ -12,6 +13,7 @@ DB_CONFIG = {
 }
 
 TABLE_NAME = "weather_data"
+TABLE_LOG  = "weather_log"
 
 def create_table(conn):
     cur = conn.cursor()
@@ -28,7 +30,34 @@ def create_table(conn):
             weather_code INTEGER
         );
     """)
+    
+    cur.execute(f"""
+        CREATE TABLE IF NOT EXISTS {TABLE_LOG} (
+            year INTEGER PRIMARY KEY,
+            ingested_at TIMESTAMP DEFAULT NOW()
+        );
+    """)
 
+    conn.commit()
+    cur.close()
+
+def already_ingested(conn, year):
+    cur = conn.cursor()
+    cur.execute(
+        f"SELECT 1 FROM {TABLE_LOG} WHERE year=%s",
+        (year,)
+    )
+    exists = cur.fetchone() is not None
+    cur.close()
+    return exists
+
+
+def log_year(conn, year):
+    cur = conn.cursor()
+    cur.execute(
+        f"INSERT INTO {TABLE_LOG}(year) VALUES (%s)",
+        (year,)
+    )
     conn.commit()
     cur.close()
 
@@ -51,37 +80,48 @@ def insert_weather(conn, df: pd.DataFrame):
     conn.commit()
     cur.close()
 
-def ingest_weather(start_date: str, end_date: str):
-    print("Fetch météo")
-    df = fetch_weather(start_date, end_date)
-    
-    df["city"] = df.groupby(df.index // (len(df) // df["date"].nunique())).ngroup()
-
-    # Nettoyage types
-    df["datetime"] = pd.to_datetime(df["date"])
-    df = df.drop(columns=["date"])
-
-    df = df[[
-        "city",
-        "datetime",
-        "temperature_2m",
-        "relative_humidity_2m",
-        "snowfall",
-        "precipitation",
-        "weather_code"
-    ]]
-
+def ingest_weather(start_year=2012, end_year=2023):
     print("Connexion PostgreSQL")
     conn = psycopg2.connect(**DB_CONFIG)
-
-    print("Création table météo")
     create_table(conn)
 
-    print("Insertion météo")
-    insert_weather(conn, df)
+    for year in range(start_year, end_year + 1):
+
+        if already_ingested(conn, year):
+            print("Skip weather", year)
+            continue
+
+        print("Fetch météo", year)
+
+        start_date = f"{year}-01-01"
+        end_date   = f"{year}-12-31"
+
+        df = fetch_weather(start_date, end_date)
+
+        # Nettoyage
+        df["datetime"] = pd.to_datetime(df["date"])
+        df = df.drop(columns=["date"])
+
+        df = df[[
+            "city",
+            "datetime",
+            "temperature_2m",
+            "relative_humidity_2m",
+            "snowfall",
+            "precipitation",
+            "weather_code"
+        ]]
+
+        print("Insertion météo", year)
+        insert_weather(conn, df)
+        log_year(conn, year)
+
+        print("Sleep")
+        time.sleep(2)
 
     conn.close()
-    print("Météo chargée dans PostgreSQL")
+    print("ingestion weather terminée")
+
 
 
 if __name__ == "__main__":

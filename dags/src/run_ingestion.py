@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from src.ingestion.downloader import download_and_extract
 from src.db.ingestion_postgre import ingest_postgres
-from src.db.ingestion_features import ingest_features
+from src.db.ingestion_clean_data import ingest_features
 from src.db.ingestion_weather import ingest_weather
 
 DATA_DIR = "/opt/airflow/dags/src/data_folder"

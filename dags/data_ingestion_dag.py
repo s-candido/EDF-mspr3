@@ -7,7 +7,7 @@ from airflow.operators.dummy_operator import DummyOperator
 import sys
 import os
 
-from src.run_ingestion import run_full_pipeline
+from src.db_ingestion import run_full_pipeline
 
 correlation_id = uuid.uuid4()
 

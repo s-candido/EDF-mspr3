@@ -2,7 +2,7 @@ import psycopg2
 import pandas as pd
 
 DB_CONFIG = {
-    "host": "edf_postgresl",
+    "host": "edf_postgresql",
     "database": "postgres",
     "user": "postgres",
     "password": "postgres",

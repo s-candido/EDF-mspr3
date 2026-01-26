@@ -1,3 +1,4 @@
+from pathlib import Path
 import pandas as pd
 import psycopg2
 from datetime import datetime
@@ -6,14 +7,20 @@ import os
 import glob
 import shutil
 
+from src.db.ingestion_postgre import ingest_postgres
+from src.db.ingestion_weather import ingest_weather
+from src.ingestion.downloader import download_and_extract
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from src.data.data_loader import load_all_data
-from src.data.weather_loader import fetch_weather
-from src.features.features import create_features
+from src.db.ingestion_clean_data import *
+from src.data.weather_loader import *
+
+
 
 DB_CONFIG = {
-    "host": "edf_postgresl",
+    "host": "edf_postgresql",
     "database": "postgres", 
     "user": "postgres",
     "password": "postgres",
@@ -265,13 +272,22 @@ def cleanup_data_files(data_dir=DATA_DIR):
         print(f"Error during cleanup: {e}")
         raise
 
-def run_full_pipeline(start_date="2020-01-01", end_date="2020-12-31", data_dir=DATA_DIR, cleanup=False):
+def run_full_pipeline(start_date="2020-01-01", end_date="2020-12-31", data_dir=DATA_DIR, cleanup=True):
     print("Starting full data pipeline...")
     
     try:
-        load_weather_data_to_db(start_date, end_date)
-        load_features_to_db(data_dir)
-        
+        extracted_files= download_and_extract(start_year=2012, target_dir=data_dir)
+        extracted_files_count = len(extracted_files)
+        print(f"Extracted {extracted_files_count} files.")
+        for e in extracted_files:
+            print(f"Extracted File: {e}")
+        ingest_postgres()
+
+        ingest_weather(2012, 2023)
+
+        df = load_from_postgres()
+
+        df = create_features(df)
         if cleanup:
             cleanup_data_files(data_dir)
         

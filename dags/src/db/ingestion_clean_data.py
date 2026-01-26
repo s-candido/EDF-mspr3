@@ -6,14 +6,14 @@ from src.features.features import create_features
 
 
 DB_CONFIG = {
-    "host": "edf_postgresl",
+    "host": "edf_postgresql",
     "database": "postgres",
     "user": "postgres",
     "password": "postgres",
     "port": 5432,
 }
 
-TABLE_NAME = "consommation_features"
+TABLE_NAME = "conso_clean"
 
 def create_table(conn):
     cur = conn.cursor()
@@ -89,7 +89,7 @@ def insert_features(conn, df: pd.DataFrame):
 
 
 def ingest_features():
-    print("Chargement depuis eco2mix_raw")
+    print(f"Chargement depuis {TABLE_NAME}")
     df_raw = load_from_postgres()
 
     print("Création des features")
@@ -104,7 +104,7 @@ def ingest_features():
 
     print("Reset features table")
     cur = conn.cursor()
-    cur.execute("TRUNCATE TABLE consommation_features")
+    cur.execute(f"TRUNCATE TABLE {TABLE_NAME}")
     conn.commit()
     cur.close()
 

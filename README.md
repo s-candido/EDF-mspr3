@@ -161,10 +161,16 @@ Hugo :
 - Analyse exploratoire + Matrice de corrélation
 
 
-### 2016 - 2023
+### Notes
+
+Data Processing --> [Clean Features] --> [Aggregate Features] ---(remove "consommation")--> [Prédictions(Partitioned by Month/Year)]
+Table agregated_features -----> Courbe Consommation réelle + Timestamp --------|
+Table predictions -----> Courbe Consommation prédite + Timestamp --------------L------> Comparaison des deux courbes sur UI
+
 
 
 MLOps : (à répéter en boucle)
+On prends 2016 - 2023
 - Prendre 3 années au hasard pour tester le modèle
 - Tester sur la 4 eme année
 
