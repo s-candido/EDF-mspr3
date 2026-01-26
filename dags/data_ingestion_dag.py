@@ -12,6 +12,8 @@ from src.db_ingestion import run_full_pipeline
 correlation_id = uuid.uuid4()
 
 MY_LOCAL_ASSETS = "/opt/airflow/dags"
+DATA_DIR = "/opt/airflow/dags/src/data_folder"
+
 
 with DAG(
         dag_id="data_ingestion_dag",
