@@ -9,7 +9,7 @@ from modeling.evaluate import evaluate_model
 from ingestion.downloader import download_and_extract
 
 from db.ingestion_postgre import ingest_postgres
-from db.ingestion_features import ingest_features
+from db.ingestion_clean_data import ingest_features
 from db.ingestion_weather import ingest_weather
 
 from data.db_loader import load_from_postgres
@@ -26,9 +26,8 @@ TARGET = "consommation"
 
 download_and_extract(start_year=2012, target_dir="data")
 ingest_postgres()
-ingest_features()
 
-ingest_weather("2020-01-01", "2020-12-31")
+ingest_weather(2012, 2023)
 
 df = load_from_postgres()
 
