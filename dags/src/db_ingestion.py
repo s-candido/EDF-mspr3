@@ -3,6 +3,8 @@ import psycopg2
 from datetime import datetime
 import sys
 import os
+import glob
+import shutil
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -224,13 +226,61 @@ def load_features_to_db(data_dir=DATA_DIR):
     finally:
         conn.close()
 
-def run_full_pipeline(start_date="2020-01-01", end_date="2020-12-31", data_dir=DATA_DIR):
+def cleanup_data_files(data_dir=DATA_DIR):
+    """
+    Delete all downloaded data files from the data directory after successful DB insertion.
+    """
+    print(f"Cleaning up data files in {data_dir}")
+    
+    data_path = Path(data_dir)
+    if not data_path.exists():
+        print(f"Data directory {data_dir} does not exist, nothing to clean")
+        return
+    
+    # List all supported files
+    supported_extensions = [".csv", ".xls", ".xlsx"]
+    deleted_count = 0
+    total_size_freed = 0
+    
+    try:
+        for file in data_path.iterdir():
+            if file.suffix.lower() in supported_extensions:
+                file_size = file.stat().st_size
+                file.unlink()
+                deleted_count += 1
+                total_size_freed += file_size
+                print(f"Deleted: {file.name}")
+        
+        # Also try to delete any .zip files that might remain
+        for file in data_path.glob("*.zip"):
+            file_size = file.stat().st_size
+            file.unlink()
+            deleted_count += 1
+            total_size_freed += file_size
+            print(f"Deleted: {file.name}")
+            
+        print(f"Cleanup completed: {deleted_count} files deleted, {total_size_freed / (1024*1024):.2f} MB freed")
+        
+    except Exception as e:
+        print(f"Error during cleanup: {e}")
+        raise
+
+def run_full_pipeline(start_date="2020-01-01", end_date="2020-12-31", data_dir=DATA_DIR, cleanup=False):
     print("Starting full data pipeline...")
     
-    load_weather_data_to_db(start_date, end_date)
-    load_features_to_db(data_dir)
-    
-    print("Pipeline completed successfully!")
+    try:
+        load_weather_data_to_db(start_date, end_date)
+        load_features_to_db(data_dir)
+        
+        if cleanup:
+            cleanup_data_files(data_dir)
+        
+        print("Pipeline completed successfully!")
+        
+    except Exception as e:
+        print(f"Pipeline failed: {e}")
+        # Don't cleanup if pipeline failed to ensure data is preserved for debugging
+        raise
 
 if __name__ == "__main__":
     run_full_pipeline(

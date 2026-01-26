@@ -33,7 +33,8 @@ with DAG(
         op_kwargs={
             "start_date": "2020-01-01",
             "end_date": "2020-12-31", 
-            "data_dir": DATA_DIR
+            "data_dir": DATA_DIR,
+            "cleanup": True
         },
         do_xcom_push=False,
         dag=dag

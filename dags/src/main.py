@@ -121,7 +121,7 @@ def run_ml_pipeline(data_dir=DATA_DIR, target=TARGET, test_size=0.2, random_stat
     # Register model in MLflow without saving locally
     with mlflow.start_run():
         mlflow.log_param("source_files", source_files)
-        mlflow.log_param("features", features)
+        ##mlflow.log_param("features", features)
         # Log params and metrics (strings → params, numbers → metrics)
         mlflow.log_param("model_type", best_name)
         mlflow.log_metric("R2", float(best_r2))
