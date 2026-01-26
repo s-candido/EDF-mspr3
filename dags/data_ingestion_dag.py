@@ -7,7 +7,11 @@ from airflow.operators.dummy_operator import DummyOperator
 import sys
 import os
 
-from src.db_ingestion import run_full_pipeline
+from src.data_ingestion import run_full_pipeline
+
+from src.db.ingestion_conso_meteo_sql import ingest_conso_meteo
+from src.db.ingestion_clean_data import ingest_features
+
 
 correlation_id = uuid.uuid4()
 
@@ -28,7 +32,7 @@ with DAG(
 
 
     ingestion_job = PythonOperator(
-        task_id="full_data_pipeline",
+        task_id="ingestion_job",
         python_callable=run_full_pipeline,
         op_kwargs={
             "start_date": "2020-01-01",
@@ -40,6 +44,21 @@ with DAG(
         dag=dag
     )
 
+    cleanning_job = PythonOperator(
+        task_id="cleanning_job",
+        python_callable=ingest_features,
+        do_xcom_push=False,
+        dag=dag
+    )
+
+    aggregation_job = PythonOperator(
+        task_id="aggregation_job",
+        python_callable=ingest_conso_meteo,
+        do_xcom_push=False,
+        dag=dag
+    )
+
+
     complete = DummyOperator(task_id="complete")
 
-    start >> ingestion_job >> complete
+    start >> ingestion_job >> cleanning_job >> aggregation_job >> complete
