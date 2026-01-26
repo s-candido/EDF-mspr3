@@ -5,3 +5,4 @@ __pycache__/
 dbs_mlflow/
 postgresql_data/
 mlflow/
+local/
