@@ -24,6 +24,24 @@ COLUMN_RENAME = {
     "hydraulique_fil_de_leeau_eclusee": "hydraulique_fil_de_leau_eclusee",
 }
 
+EXPECTED_COLS = [
+    "perimetre","nature","date","heures","consommation",
+    "prevision_j_1","prevision_j","fioul","charbon","gaz",
+    "nucleaire","eolien","solaire","hydraulique","pompage",
+    "bioenergies","ech_physiques","taux_de_co2",
+    "ech_comm_angleterre","ech_comm_espagne",
+    "ech_comm_italie","ech_comm_suisse",
+    "ech_comm_allemagne_belgique",
+    "fioul_tac","fioul_cogen","fioul_autres",
+    "gaz_tac","gaz_cogen","gaz_ccg","gaz_autres",
+    "hydraulique_fil_de_leau_eclusee",
+    "hydraulique_lacs","hydraulique_step_turbinage",
+    "bioenergies_dechets","bioenergies_biomasse",
+    "bioenergies_biogaz","stockage_batterie",
+    "destockage_batterie","eolien_terrestre",
+    "eolien_offshore","source_file"
+]
+
 def file_checksum(path: Path):
     h = hashlib.md5()
     with open(path, "rb") as f:
@@ -103,15 +121,17 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     # Normalisation des noms de colonnes foireux
     df = df.rename(columns=COLUMN_RENAME)
 
+    # schéma imposé
+    df = df.reindex(columns=EXPECTED_COLS)
+
+    # Typage automatique
     for col in df.columns:
         converted = pd.to_numeric(df[col], errors="coerce")
         ratio_numeric = converted.notna().mean()
 
         if ratio_numeric > 0.3:
-            # Colonne numérique
             df[col] = converted
         else:
-            # Colonne texte
             df[col] = df[col].astype("string")
             df[col] = df[col].where(df[col].notna(), None)
 

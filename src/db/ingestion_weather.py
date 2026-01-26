@@ -55,8 +55,6 @@ def ingest_weather(start_date: str, end_date: str):
     print("Fetch météo")
     df = fetch_weather(start_date, end_date)
     
-    df["city"] = df.groupby(df.index // (len(df) // df["date"].nunique())).ngroup()
-
     # Nettoyage types
     df["datetime"] = pd.to_datetime(df["date"])
     df = df.drop(columns=["date"])
