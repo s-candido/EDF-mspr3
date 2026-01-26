@@ -4,7 +4,7 @@ import io
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = PROJECT_ROOT / "src" / "data"
+DATA_DIR = PROJECT_ROOT / "data"
 
 BASE_URL = (
     "https://eco2mix.rte-france.com/download/eco2mix/"
