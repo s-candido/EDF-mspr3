@@ -72,15 +72,13 @@ def fetch_weather(start_date= str, end_date= str) -> pd.DataFrame :
             freq = pd.Timedelta(seconds = hourly.Interval()),
             inclusive = "left"
         )}
-
+        
+        hourly_data["city"] = city
         hourly_data["temperature_2m"] = hourly_temperature_2m
         hourly_data["relative_humidity_2m"] = hourly_relative_humidity_2m
         hourly_data["snowfall"] = hourly_snowfall
         hourly_data["precipitation"] = hourly_precipitation
         hourly_data["weather_code"] = hourly_weather_code
-
-        hourly_dataframe = pd.DataFrame(data = hourly_data)
-        print("\nHourly data\n", hourly_dataframe)
 
         city_df = pd.DataFrame(hourly_data)
         all_cities_data.append(city_df)

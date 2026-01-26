@@ -1,4 +1,3 @@
-from data.data_loader import load_all_data
 from data.weather_loader import fetch_weather
 
 from features.features import create_features
@@ -8,6 +7,12 @@ from modeling.train import train_models
 from modeling.evaluate import evaluate_model
 
 from ingestion.downloader import download_and_extract
+
+from db.ingestion_postgre import ingest_postgres
+from db.ingestion_features import ingest_features
+from db.ingestion_weather import ingest_weather
+
+from data.db_loader import load_from_postgres
 
 from sklearn.model_selection import train_test_split
 import mlflow
@@ -20,9 +25,13 @@ DATA_DIR = "../data"
 TARGET = "consommation"
 
 download_and_extract(start_year=2012, target_dir="data")
+ingest_postgres()
+ingest_features()
 
-df = load_all_data(DATA_DIR)
-print(df["source_file"].unique().tolist())
+ingest_weather("2020-01-01", "2020-12-31")
+
+df = load_from_postgres()
+
 df = create_features(df)
 
 df[TARGET] = pd.to_numeric(df[TARGET], errors="coerce")

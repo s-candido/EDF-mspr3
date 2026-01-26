@@ -72,7 +72,8 @@ def fetch_weather(start_date= str, end_date= str) -> pd.DataFrame :
             freq = pd.Timedelta(seconds = hourly.Interval()),
             inclusive = "left"
         )}
-
+        
+        hourly_data["city"] = city
         hourly_data["temperature_2m"] = hourly_temperature_2m
         hourly_data["relative_humidity_2m"] = hourly_relative_humidity_2m
         hourly_data["snowfall"] = hourly_snowfall
