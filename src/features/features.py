@@ -2,30 +2,24 @@ import pandas as pd
 
 def aggregate_hourly(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-
-    # Nettoyage ND → NaN
     df = df.replace("ND", pd.NA)
 
-    # Création datetime à partir de date + heures
+    # datetime
     df["datetime"] = pd.to_datetime(
         df["date"].astype(str) + " " + df["heures"].astype(str),
         errors="coerce"
     )
 
-    # Clé horaire
     df["hour_ts"] = df["datetime"].dt.floor("h")
 
-    # Colonnes numériques
     numeric_cols = df.select_dtypes(include="number").columns
+    non_numeric_cols = df.columns.difference(numeric_cols)
 
     agg_dict = {}
 
     for col in numeric_cols:
-        if col == "consommation":
-            agg_dict[col] = "mean"
+        agg_dict[col] = "mean"
 
-    # Colonnes non numériques
-    non_numeric_cols = df.columns.difference(numeric_cols)
     for col in non_numeric_cols:
         if col not in ["datetime", "hour_ts"]:
             agg_dict[col] = "first"
@@ -44,6 +38,7 @@ def aggregate_hourly(df: pd.DataFrame) -> pd.DataFrame:
 def create_features(df: pd.DataFrame) -> pd.DataFrame:
     df = aggregate_hourly(df)
 
+    df["year"] = df["datetime"].dt.year
     df["hour"] = df["datetime"].dt.hour
     df["day"] = df["datetime"].dt.day
     df["month"] = df["datetime"].dt.month
