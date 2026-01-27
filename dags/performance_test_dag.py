@@ -70,7 +70,8 @@ with DAG(
       * performance_results.csv: Complete results in CSV format
 
     View results in MLFlow UI: http://localhost:5000
-    """
+    """, 
+    tags=["test", "mlflow", "performance_test"]
 ) as dag:
 
     start = DummyOperator(task_id="start")

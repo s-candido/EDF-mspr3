@@ -180,3 +180,12 @@ On prends 2016 - 2023
 - Features Importance / Equilibre du modèle
 - Lien avec les logiques métiers
 - Monitoring du modèle (Data Drift / Concept Drift)
+
+
+## Features à faire
+
+- Moyenne par saison
+
+- Moyenne par Région
+
+- Moyenne Nationale de la température

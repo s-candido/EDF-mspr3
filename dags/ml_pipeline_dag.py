@@ -19,7 +19,9 @@ with DAG(
         dag_id="main_dag",
         schedule_interval=None,
         start_date=datetime(2022, 3, 3,),
-        catchup=False) as dag:
+        catchup=False,
+        description="DAG for loading weather and consumption data into PostgreSQL",
+        tags=["train","evaluate", "local", "mlflow"]) as dag:
 
     start = DummyOperator(task_id="start")
 
@@ -36,3 +38,5 @@ with DAG(
 
     # Linear pipeline: start -> preprocessing -> training -> complete
     start >> preprocessing_task >>  complete
+
+
