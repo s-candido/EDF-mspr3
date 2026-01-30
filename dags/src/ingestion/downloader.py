@@ -3,9 +3,8 @@ import zipfile
 import io
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = PROJECT_ROOT / "src" / "data"
-
+DATA_DIR = "/opt/airflow/dags/src/data_folder"
+DATA_DIR_PATH = Path(DATA_DIR)
 BASE_URL = (
     "https://eco2mix.rte-france.com/download/eco2mix/"
     "eCO2mix_RTE_Annuel-Definitif_{year}.zip"
@@ -25,7 +24,7 @@ def download_and_extract(
     - Évite les doublons
     """
 
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    DATA_DIR_PATH.mkdir(parents=True, exist_ok=True)
 
     extracted_files = []
     year = start_year
@@ -44,14 +43,14 @@ def download_and_extract(
 
         with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
             for member in zip_file.namelist():
-                output_file = DATA_DIR / member
+                output_file = DATA_DIR_PATH / member
 
                 # Éviter de réécrire si le fichier existe déjà
                 if output_file.exists():
                     print(f"Fichier déjà présent : {output_file.name}")
                     continue
 
-                zip_file.extract(member, DATA_DIR)
+                zip_file.extract(member, DATA_DIR_PATH)
                 extracted_files.append(output_file)
 
         year += 1

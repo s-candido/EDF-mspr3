@@ -15,4 +15,3 @@ pandas==1.5.3
 joblib
 psycopg2-binary
 apache-airflow
-psycopg2

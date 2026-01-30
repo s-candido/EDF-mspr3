@@ -4,6 +4,8 @@ import pandas as pd
 import requests_cache
 from retry_requests import retry
 
+# TODO 
+# Pour Moyenne nationale = Faire une moyenne des villes 
 CITIES = {
     "Paris": (48.8566, 2.3522),
     "Marseille": (43.2965, 5.3698),

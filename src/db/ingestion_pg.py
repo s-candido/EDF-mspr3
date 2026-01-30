@@ -26,7 +26,7 @@ DB_CONFIG = {
     "database": "postgres",
     "user": "postgres",
     "password": "postgres",
-    "port": 5441
+    "port": 5432
 }
 TABLE_NAME = "meteo_all_cities"
 
