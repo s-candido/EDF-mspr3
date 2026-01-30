@@ -148,14 +148,25 @@ flowchart TD
     subgraph MLFlow
         G[MLFlow Registery]
     end
-    subgraph Airflow DAG
-        T[API - Open météo] -->|API Call| E(table meteo_data)
-        A[Data - xls] -->|Download| B(Local Folder)
-        B -->|Ingestion| C[table conso_features]
-        C -->|Aggregation| D
-        E -->|Aggregation| D[table final_features - PARTITION per YEAR]
-        D -->|Train / Evaluate| F[Train / Test Models]
-        F -->|Save Models| G
+    subgraph Airflow
+        subgraph Data Ingestion DAG
+            T[API - Open météo] -->|API Call| E(table weather_data)
+            A[Data - xls] -->|Download| B(Local Folder)
+            B -->|Ingestion| C[table eco2mix_raw]
+            C -->|Nettoyage / Transformation| C1[table conso_clean]
+            C1 -->|Aggregation| D
+            E -->|Aggregation| D[table aggregated_con_weather]
+            D-->|Selection des Features / Scaling et Standardisation| D1[table agg_conso_meteo_features]
+        end
+        subgraph Trainning DAG
+            D1 -->|Train / Evaluate| F[Train / Test Models]
+            F -->|Save Models| G
+        end
+        subgraph Batch Prediction DAG
+            G -->|Load Models| H[Batch Prediction]
+            D1 -->|Load Features| H
+            H -->|Batch Prediction| I[table batch_prediction]
+        end
     end
 ```
 
