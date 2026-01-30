@@ -1,4 +1,5 @@
 from typing import Iterable
+from datetime import datetime
 
 import mlflow
 import pandas as pd
@@ -8,7 +9,7 @@ from psycopg2.extras import execute_values
 from mlflow.pyfunc import load_model
 from src.mlflow.pull_model_from_mlflow import get_latest_model_version
 from src.batch_prediction.db_utils import create_table_from_dataframe
-
+from airflow import DAG
 from mlflow.tracking import MlflowClient
 
 DB_CONFIG = {
@@ -49,15 +50,7 @@ def get_latest_model_version(model_name: str) -> int:
         return None
     
 
-def batch_prediction(
-    model_name: str,
-    source_table: str,
-    prediction_table: str,
-    feature_columns: Iterable[str],
-    selected_years: Iterable[int] = None,
-    db_config: dict = DB_CONFIG,
-    mlflow_url: str = MLFLOW_URL,
-) -> int:
+def batch_prediction(**context):
     """
     Load a model from MLflow, run batch predictions on a SQL table, and store results.
 
@@ -68,11 +61,29 @@ def batch_prediction(
         feature_columns: List of columns to use as model features.
         db_config: PostgreSQL connection parameters.
         mlflow_url: MLflow tracking URI.
-        selected_years: List of years to filter the source data.
+        context: Airflow task context containing dag_run configuration.
 
     Returns:
         Number of predictions inserted.
     """
+    dag_run_conf = context.get('dag_run').conf or {} if context else {}
+
+    model_name = dag_run_conf.get('model_name', [])
+    source_table = context.get('source_table')
+    prediction_table = context.get('prediction_table')
+    feature_columns = context.get('feature_columns', [])
+    db_config = context.get('db_config', {})
+    mlflow_url = context.get('mlflow_url', MLFLOW_URL)
+    selected_years = dag_run_conf.get('selected_years', [])
+
+    print(" --------------  Batch prediction inputs -------------- ")
+    print(f"model_name: {context.get('model_name')}")
+    print(f"source_table: {context.get('source_table')}")
+    print(f"prediction_table: {context.get('prediction_table')}")
+    print(f"feature_columns: {list(context.get('feature_columns', []))}")
+    print(f"db_config: {context.get('db_config')}")
+    print(f"mlflow_url: {context.get('mlflow_url')}")
+    print(f"selected_years: {selected_years}")
     mlflow.set_tracking_uri(mlflow_url)
 
     version = get_latest_model_version(MODEL_NAME)
@@ -104,17 +115,23 @@ def batch_prediction(
         X = df[feature_columns].copy()
         X = X.replace("ND", pd.NA).fillna(0)
         print(" ----------- Modèle prédit avec ces colonnes ----------- ")
+        print(f" ----------- Année {years_str} ----------- ")
         print(X.head())
         print(f"Training on {len(X)} samples with {len(feature_columns)} features")
         predictions = model.predict(X)
 
         result_df = df[feature_columns].copy()
         result_df["prediction"] = predictions
+        result_df["datetime"] = df["datetime"]
 
-        create_table_from_dataframe(conn, prediction_table, result_df)
+
+        current_date = datetime.now().strftime("%d_%m_%Y")
+        prediction_table_name_agg = f"{prediction_table}_{selected_years}_{current_date}"
+        
+        create_table_from_dataframe(conn, prediction_table_name_agg, result_df)
 
         insert_query = sql.SQL("INSERT INTO {} ({}) VALUES %s").format(
-            sql.Identifier(prediction_table),
+            sql.Identifier(prediction_table_name_agg),
             sql.SQL(", ").join(sql.Identifier(col) for col in result_df.columns),
         )
         values = result_df.where(pd.notnull(result_df), None).values.tolist()

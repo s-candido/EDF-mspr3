@@ -20,6 +20,7 @@ docker-compose up -d
 - [dags.md](dags.md)
 - [dags_fr.md](dags_fr.md)
 - [notebook/features_notebook.ipynb](notebook/features_notebook.ipynb)
+- [local/experiments/cyril_notebook.ipynb](local/experiments/cyril_notebook.ipynb)
 
 ## Références techniques
 
@@ -163,7 +164,7 @@ Pour 26 Janvier :
 
 - Modèle à monter qui tourne avec bon score
 - Dockeriser si possible
-
+- Faire un notebook pur monter le cheminement de bout en bout (Support de Présentation)
 Sebastien : 
 - 
 

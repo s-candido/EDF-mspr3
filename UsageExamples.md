@@ -6,6 +6,7 @@
 - [ChangeLog.md](ChangeLog.md)
 - [dags.md](dags.md)
 - [dags_fr.md](dags_fr.md)
+- [local/experiments/cyril_notebook.ipynb](local/experiments/cyril_notebook.ipynb)
 
 ## Batch prediction (Python call)
 
@@ -37,3 +38,9 @@ rows = prepare_batch_prediction_data(
 )
 print(rows)
 ```
+
+## Notebook model analysis
+
+Monthly metrics and consumption analysis are available in the Cyril notebook:
+
+- [local/experiments/cyril_notebook.ipynb](local/experiments/cyril_notebook.ipynb)

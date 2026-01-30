@@ -23,7 +23,17 @@ UTILS_COLUMNS = [
     "datetime",
     "year"
 ]
+
+DB_CONFIG = {
+    "host": "edf_postgresql",
+    "database": "postgres",
+    "user": "postgres",
+    "password": "postgres",
+    "port": 5432,
+}
 TARGET = "consommation"
+MLFLOW_URL = "http://mlflow:5000"
+
 
 with DAG(
     dag_id="batch_prediction_dag",
@@ -31,8 +41,9 @@ with DAG(
     start_date=datetime(2022, 3, 3,),
     catchup=False,
     description="DAG for batch prediction from PostgreSQL and MLflow",
-    tags=["data", "prediction", "postgresql"]) as dag:
-    
+    tags=["data", "prediction", "postgresql"],
+    params={"selected_years": [2020]}) as dag:
+
 
     start = DummyOperator(task_id="start")
 
@@ -58,7 +69,8 @@ with DAG(
             "source_table": PREPARED_TABLE,
             "prediction_table": PREDICTION_TABLE,
             "feature_columns": FEATURE_COLUMNS,
-            "selected_years": [2020],
+            "db_config" : DB_CONFIG,
+            "mlflow_url" : MLFLOW_URL,
         },
         do_xcom_push=False,
         dag=dag,
