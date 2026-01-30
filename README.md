@@ -13,6 +13,19 @@ docker-compose build
 docker-compose up -d
 ```
 
+## Documentation
+
+- [UsageExamples.md](UsageExamples.md)
+- [ChangeLog.md](ChangeLog.md)
+- [dags.md](dags.md)
+- [dags_fr.md](dags_fr.md)
+- [notebook/features_notebook.ipynb](notebook/features_notebook.ipynb)
+
+## Références techniques
+
+- `batch_prediction()` : [dags/src/batch_prediction/batch_prediction.py](dags/src/batch_prediction/batch_prediction.py)
+- `create_features()` : [dags/src/features/features.py](dags/src/features/features.py)
+
 ### Gestion et Versionning des Modèles : MLFlow
 
 MLFlow est accessible sur : 
