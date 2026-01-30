@@ -75,7 +75,7 @@ def batch_prediction(**context):
     db_config = context.get('db_config', {})
     mlflow_url = context.get('mlflow_url', MLFLOW_URL)
     selected_years = dag_run_conf.get('selected_years', [])
-
+    selected_months = dag_run_conf.get('selected_months', [])
     print(" --------------  Batch prediction inputs -------------- ")
     print(f"model_name: {context.get('model_name')}")
     print(f"source_table: {context.get('source_table')}")
@@ -84,6 +84,7 @@ def batch_prediction(**context):
     print(f"db_config: {context.get('db_config')}")
     print(f"mlflow_url: {context.get('mlflow_url')}")
     print(f"selected_years: {selected_years}")
+    print(f"selected_months: {selected_months}")
     mlflow.set_tracking_uri(mlflow_url)
 
     version = get_latest_model_version(MODEL_NAME)
@@ -103,6 +104,12 @@ def batch_prediction(**context):
         if selected_years:
             years_str = ','.join(map(str, selected_years))
             query += f" WHERE year IN ({years_str})"
+
+        if selected_months:
+            months_str = ','.join(map(str, selected_months))
+            if 'WHERE' in query:
+                query += f" AND month IN ({months_str})"
+
         query += ";"
         df = pd.read_sql_query(query, conn)
         if df.empty:
@@ -116,6 +123,7 @@ def batch_prediction(**context):
         X = X.replace("ND", pd.NA).fillna(0)
         print(" ----------- Modèle prédit avec ces colonnes ----------- ")
         print(f" ----------- Année {years_str} ----------- ")
+        print(f" ----------- Année {months_str} ----------- ")
         print(X.head())
         print(f"Training on {len(X)} samples with {len(feature_columns)} features")
         predictions = model.predict(X)

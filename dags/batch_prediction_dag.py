@@ -42,7 +42,10 @@ with DAG(
     catchup=False,
     description="DAG for batch prediction from PostgreSQL and MLflow",
     tags=["data", "prediction", "postgresql"],
-    params={"selected_years": [2020]}) as dag:
+    params={
+        "selected_years": [2020],
+        "selected_months": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        }) as dag:
 
 
     start = DummyOperator(task_id="start")
