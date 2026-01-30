@@ -32,6 +32,13 @@ FEATURE_COLUMNS = [
     "dayofweek",
     "weekend",
 ]
+UTILS_COLUMNS = [
+    "id",
+    "conso_id",
+    "datetime",
+    "year"
+]
+TARGET = "consommation"
 
 DB_CONFIG = {
     "host": "edf_postgresql",
@@ -50,10 +57,13 @@ def train_and_log_model(**context):
     conn = psycopg2.connect(**DB_CONFIG)
     
     years_str = ','.join(map(str, selected_years))
-    
-    feature_columns_str = ', '.join(FEATURE_COLUMNS)
+
+    feature_columns = list(FEATURE_COLUMNS)
+    if not feature_columns:
+        raise ValueError("feature_columns must contain at least one column name.")
+
     query = f"""
-        SELECT consommation, {feature_columns_str}, year, month, day, hour, dayofweek, weekend
+        SELECT *
         FROM {SOURCE_TABLE} 
         WHERE year IN ({years_str})
         ORDER BY year, month, day, hour
@@ -71,9 +81,10 @@ def train_and_log_model(**context):
     TARGET = "consommation"
     df[TARGET] = pd.to_numeric(df[TARGET], errors="coerce")
     
-    X = df[FEATURE_COLUMNS].fillna(0)
+    X = df[feature_columns].fillna(0)
     y = df[TARGET].fillna(0)
-    
+    print(" ----------- Modèle entrainé avec ces colonnes ----------- ")
+    print(X.head())
     print(f"Training on {len(X)} samples with {len(FEATURE_COLUMNS)} features")
     
     X_train, X_test, y_train, y_test = train_test_split(
@@ -111,9 +122,16 @@ def train_and_log_model(**context):
         mlflow.log_metric("RMSE", final_metrics['RMSE'])
         mlflow.log_metric("MAPE", final_metrics['MAPE (%)'])
 
+        # Log the model directly to MLflow
+        mlflow.sklearn.log_model(best_model, artifact_path=MODEL_NAME)
+
+        # Register the model in MLflow Model Registry
         model_uri = f"runs:/{mlflow.active_run().info.run_id}/{MODEL_NAME}"
         mlflow.register_model(model_uri, MODEL_NAME)
-        
+
+        print(f"Modèle retenu : {best_name} (R2={best_r2:.4f})")
+        print(f"Model registered in MLflow as '{MODEL_NAME}' - Run ID: {mlflow.active_run().info.run_id}")
+
         print(f"Model and artifacts logged to MLflow with correlation_id: {correlation_id}")
         print(f"MLflow experiment: energy_consumption_training")
     
@@ -139,6 +157,8 @@ with DAG(
             "source_table": SOURCE_TABLE,
             "prepared_table": "agg_conso_meteo_features",
             "feature_columns": FEATURE_COLUMNS,
+            "utils_columns": UTILS_COLUMNS,
+            "target": TARGET,
         },
         do_xcom_push=False,
         dag=dag,

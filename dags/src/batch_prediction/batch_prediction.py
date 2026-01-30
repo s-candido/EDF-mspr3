@@ -5,10 +5,11 @@ import pandas as pd
 import psycopg2
 from psycopg2 import sql
 from psycopg2.extras import execute_values
-
+from mlflow.pyfunc import load_model
 from src.mlflow.pull_model_from_mlflow import get_latest_model_version
 from src.batch_prediction.db_utils import create_table_from_dataframe
 
+from mlflow.tracking import MlflowClient
 
 DB_CONFIG = {
     "host": "edf_postgresql",
@@ -23,12 +24,37 @@ MODEL_NAME = "MODEL_EDF"
 
 TARGET = "consommation"
 
+def get_latest_model_version(model_name: str) -> int:
+    """
+    Get the latest version of a model from the MLflow model registry.
+
+    Args:
+        model_name (str): The name of the model in the MLflow model registry.
+
+    Returns:
+        int: The latest version of the model.
+    """
+    try:
+        client = MlflowClient()
+        versions = client.get_latest_versions(model_name, stages=["None", "Staging", "Production"])
+        if versions:
+            latest_version = max(int(version.version) for version in versions)
+            print(f"Latest version of model '{model_name}' is: {latest_version}")
+            return latest_version
+        else:
+            print(f"No versions found for model '{model_name}'.")
+            return None
+    except Exception as e:
+        print(f"Error fetching latest version: {e}")
+        return None
+    
 
 def batch_prediction(
     model_name: str,
     source_table: str,
     prediction_table: str,
     feature_columns: Iterable[str],
+    selected_years: Iterable[int] = None,
     db_config: dict = DB_CONFIG,
     mlflow_url: str = MLFLOW_URL,
 ) -> int:
@@ -42,18 +68,19 @@ def batch_prediction(
         feature_columns: List of columns to use as model features.
         db_config: PostgreSQL connection parameters.
         mlflow_url: MLflow tracking URI.
+        selected_years: List of years to filter the source data.
 
     Returns:
         Number of predictions inserted.
     """
     mlflow.set_tracking_uri(mlflow_url)
 
-    version = get_latest_model_version(model_name)
+    version = get_latest_model_version(MODEL_NAME)
     if version is None:
         raise ValueError(f"No MLflow model version found for '{model_name}'.")
-
+    model_name = MODEL_NAME
     model_uri = f"models:/{model_name}/{version}"
-    model = mlflow.pyfunc.load_model(model_uri)
+    model = load_model(model_uri)
 
     feature_columns = list(feature_columns)
     if not feature_columns:
@@ -61,7 +88,12 @@ def batch_prediction(
 
     conn = psycopg2.connect(**db_config)
     try:
-        df = pd.read_sql_query(f"SELECT * FROM {source_table};", conn)
+        query = f"SELECT * FROM {source_table}"
+        if selected_years:
+            years_str = ','.join(map(str, selected_years))
+            query += f" WHERE year IN ({years_str})"
+        query += ";"
+        df = pd.read_sql_query(query, conn)
         if df.empty:
             return 0
 
@@ -71,7 +103,9 @@ def batch_prediction(
 
         X = df[feature_columns].copy()
         X = X.replace("ND", pd.NA).fillna(0)
-
+        print(" ----------- Modèle prédit avec ces colonnes ----------- ")
+        print(X.head())
+        print(f"Training on {len(X)} samples with {len(feature_columns)} features")
         predictions = model.predict(X)
 
         result_df = df[feature_columns].copy()

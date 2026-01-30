@@ -17,7 +17,13 @@ FEATURE_COLUMNS = [
     "dayofweek",
     "weekend",
 ]
-
+UTILS_COLUMNS = [
+    "id",
+    "conso_id",
+    "datetime",
+    "year"
+]
+TARGET = "consommation"
 
 with DAG(
     dag_id="batch_prediction_dag",
@@ -37,6 +43,8 @@ with DAG(
             "source_table": SOURCE_TABLE,
             "prepared_table": PREPARED_TABLE,
             "feature_columns": FEATURE_COLUMNS,
+            "utils_columns": UTILS_COLUMNS,
+            "target": TARGET,
         },
         do_xcom_push=False,
         dag=dag,
@@ -50,6 +58,7 @@ with DAG(
             "source_table": PREPARED_TABLE,
             "prediction_table": PREDICTION_TABLE,
             "feature_columns": FEATURE_COLUMNS,
+            "selected_years": [2020],
         },
         do_xcom_push=False,
         dag=dag,
