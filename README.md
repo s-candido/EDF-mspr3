@@ -135,7 +135,10 @@ https://medium.com/@opcfrance/setting-up-apache-airflow-with-docker-a-comprehens
 ![alt text](assets/img/infrastructure.png)
 
 
+## Base de Données
 
+
+![alt text](assets/postgres_tables.png)
 
 ## Diagramme de flux
 

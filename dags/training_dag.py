@@ -36,7 +36,8 @@ UTILS_COLUMNS = [
     "id",
     "conso_id",
     "datetime",
-    "year"
+    "year",
+    "day"
 ]
 TARGET = "consommation"
 

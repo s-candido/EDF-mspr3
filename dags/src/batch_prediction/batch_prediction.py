@@ -76,6 +76,8 @@ def batch_prediction(**context):
     mlflow_url = context.get('mlflow_url', MLFLOW_URL)
     selected_years = dag_run_conf.get('selected_years', [])
     selected_months = dag_run_conf.get('selected_months', [])
+    selected_days = dag_run_conf.get('selected_days', [])
+
     print(" --------------  Batch prediction inputs -------------- ")
     print(f"model_name: {context.get('model_name')}")
     print(f"source_table: {context.get('source_table')}")
@@ -85,9 +87,13 @@ def batch_prediction(**context):
     print(f"mlflow_url: {context.get('mlflow_url')}")
     print(f"selected_years: {selected_years}")
     print(f"selected_months: {selected_months}")
+    print(f"selected_days: {selected_days}")
+
+
     mlflow.set_tracking_uri(mlflow_url)
 
     version = get_latest_model_version(MODEL_NAME)
+
     if version is None:
         raise ValueError(f"No MLflow model version found for '{model_name}'.")
     model_name = MODEL_NAME
@@ -110,6 +116,11 @@ def batch_prediction(**context):
             if 'WHERE' in query:
                 query += f" AND month IN ({months_str})"
 
+        if selected_days:
+            days_str = ','.join(map(str, selected_days))
+            if 'WHERE' in query:
+                query += f" AND day IN ({days_str})"
+
         query += ";"
         df = pd.read_sql_query(query, conn)
         if df.empty:
@@ -122,8 +133,9 @@ def batch_prediction(**context):
         X = df[feature_columns].copy()
         X = X.replace("ND", pd.NA).fillna(0)
         print(" ----------- Modèle prédit avec ces colonnes ----------- ")
-        print(f" ----------- Année {years_str} ----------- ")
-        print(f" ----------- Année {months_str} ----------- ")
+        print(f" ----------- Année : {years_str} ----------- ")
+        print(f" ----------- Mois :  {months_str} ----------- ")
+        print(f" ----------- Jour :  {days_str} ----------- ")
         print(X.head())
         print(f"Training on {len(X)} samples with {len(feature_columns)} features")
         predictions = model.predict(X)
