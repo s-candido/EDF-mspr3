@@ -1,5 +1,6 @@
 __pycache__/
 /data
+/data_regions
 /.qlty
 /.ruff_caches
 dbs_mlflow/

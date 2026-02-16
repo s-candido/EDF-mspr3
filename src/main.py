@@ -14,7 +14,9 @@ from db.ingestion_clean_data import ingest_features
 from db.ingestion_weather import ingest_weather, ingest_weather_live 
 from db.ingestion_conso_meteo_sql import ingest_conso_meteo
 from db.ingestion_live import ingest_live_postgres
-
+from db.ingestion_aggregated_live import ingest_live_into_conso_clean
+from db.ingestion_regions_clean import ingest_region_clean
+from db.ingestion_regions_ecodata import ingest_regions
 from data.db_loader import load_from_postgres
 
 from sklearn.model_selection import train_test_split
@@ -24,26 +26,14 @@ import joblib
 import os
 import pandas as pd
 
-from db.ingestion_aggregated_live import ingest_live_into_conso_clean
 
 DATA_DIR = "../data"
 TARGET = "consommation"
 
-download_and_extract(start_year=2012, target_dir="data")
+ingest_regions()
+ingest_region_clean()
 
-ingest_postgres()
 
-ingest_weather(2012, 2023)
-
-download_and_extract_live()
-
-ingest_live_postgres()
-
-ingest_weather_live()
-
-ingest_live_into_conso_clean()
-
-ingest_conso_meteo()
 
 df = load_from_postgres()
 
