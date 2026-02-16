@@ -1,8 +1,15 @@
 import openmeteo_requests
-
+import psycopg2
 import pandas as pd
+import time
+from openmeteo_requests.Client import OpenMeteoRequestsError
+
 import requests_cache
 from retry_requests import retry
+from data.db_loader import DB_CONFIG
+
+_LAST_CALL = 0
+MIN_DELAY = 1.2
 
 # TODO 
 # Pour Moyenne nationale = Faire une moyenne des villes 
@@ -42,7 +49,7 @@ url = "https://archive-api.open-meteo.com/v1/archive"
 
 all_cities_data = []
 
-def fetch_weather(start_date= str, end_date= str) -> pd.DataFrame :
+def _fetch_weather_raw(start_date= str, end_date= str) -> pd.DataFrame :
 
     for city, (lat, lon) in CITIES.items():
         
@@ -86,5 +93,25 @@ def fetch_weather(start_date= str, end_date= str) -> pd.DataFrame :
         all_cities_data.append(city_df)
         
     return pd.concat(all_cities_data, ignore_index=True)
-        
-        
+              
+def fetch_weather(start_date, end_date, max_retries=5):
+    global _LAST_CALL
+
+    now = time.time()
+    elapsed = now - _LAST_CALL
+    if elapsed < MIN_DELAY:
+        time.sleep(MIN_DELAY - elapsed)
+
+    try:
+        _LAST_CALL = time.time()
+        return _fetch_weather_raw(start_date, end_date)
+
+    except OpenMeteoRequestsError as e:
+        msg = str(e)
+
+        if "Minutely API request limit exceeded" in msg and max_retries > 0:
+            print("Quota météo atteint → pause 60s…")
+            time.sleep(60)
+            return fetch_weather(start_date, end_date, max_retries - 1)
+
+        raise

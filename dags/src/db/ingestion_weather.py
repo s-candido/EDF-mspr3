@@ -124,5 +124,70 @@ def ingest_weather(start_year=2012, end_year=2023):
 
 
 
-if __name__ == "__main__":
-    ingest_weather("2020-01-01", "2020-12-31")
+def ingest_weather_live():
+    print("Connexion PostgreSQL météo")
+    conn = psycopg2.connect(**DB_CONFIG)
+    create_table(conn)
+
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT 
+            MIN(date || ' ' || heures),
+            MAX(date || ' ' || heures)
+        FROM eco2mix_live_raw
+    """)
+    result = cur.fetchone()
+    cur.close()
+
+    if not result or not result[0]:
+        print("Aucune donnée RTE live en base")
+        conn.close()
+        return
+
+    start_dt = pd.to_datetime(result[0])
+    end_dt   = pd.to_datetime(result[1])
+
+    start_date = start_dt.strftime("%Y-%m-%d")
+    end_date   = end_dt.strftime("%Y-%m-%d")
+
+    print(f"Fetch météo du {start_date} au {end_date}")
+
+    df = fetch_weather(start_date, end_date)
+
+    if df.empty:
+        print("Aucune donnée météo récupérée")
+        conn.close()
+        return
+
+    df["datetime"] = pd.to_datetime(df["date"])
+    df = df.drop(columns=["date"])
+
+    df = df[[
+        "city",
+        "datetime",
+        "temperature_2m",
+        "relative_humidity_2m",
+        "snowfall",
+        "precipitation",
+        "weather_code"
+    ]]
+
+    cur = conn.cursor()
+    cur.execute(f"SELECT MAX(datetime) FROM {TABLE_NAME}")
+    last_weather = cur.fetchone()[0]
+    cur.close()
+
+    if last_weather:
+        df = df[df["datetime"] > last_weather]
+
+    if df.empty:
+        print("Aucune nouvelle donnée météo à insérer")
+        conn.close()
+        return
+
+    print(f"Insertion météo : {len(df)} lignes")
+    insert_weather(conn, df)
+
+    conn.close()
+    print("INGESTION MÉTÉO LIVE TERMINÉE")
