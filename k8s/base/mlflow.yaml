@@ -1,0 +1,160 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  namespace: ml-platform
+  labels:
+    app: mlflow
+    component: tracking
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      initContainers:
+        - name: s3fs-init
+          image: kleverweg/s3fs:latest
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: S3_BUCKET_NAME
+            - name: S3_ENDPOINT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: S3_ENDPOINT_URL
+          command:
+            - sh
+            - -c
+            - |
+              echo "Configuring S3FS for bucket: $S3_BUCKET"
+              s3fs $S3_BUCKET /data/mlflow -o passwdfile=/etc/passwd-s3fs \
+                -o endpoint=gra \
+                -o host=https://s3.gra.cloud.ovh.net \
+                -o url=https://s3.gra.cloud.ovh.net \
+                -o allow_other
+      containers:
+        - name: mlflow
+          image: python:3.10-slim
+          ports:
+            - containerPort: 5000
+              name: mlflow
+          env:
+            - name: MLFLOW_S3_ENDPOINT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: S3_ENDPOINT_URL
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: AWS_DEFAULT_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AWS_DEFAULT_REGION
+            - name: MLFLOW_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: MLFLOW_DB_URI
+            - name: MLFLOW_ARTIFACT_ROOT
+              value: "s3://ml-platform-storage/mlflow-artifacts"
+          command:
+            - sh
+            - -c
+            - |
+              pip install mlflow psycopg2-binary boto3 &&
+              mlflow server \
+                --backend-store-uri $(MLFLOW_DB_URI) \
+                --default-artifact-root s3://ml-platform-storage/mlflow-artifacts \
+                --serve-artifacts \
+                --host 0.0.0.0 \
+                --port 5000
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: mlflow-data
+          persistentVolumeClaim:
+            claimName: s3-raw-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow
+  namespace: ml-platform
+spec:
+  selector:
+    app: mlflow
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: LoadBalancer
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mlflow-ingress
+  namespace: ml-platform
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  rules:
+    - host: mlflow.ml-platform.ovh
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mlflow
+                port:
+                  number: 5000
+  tls:
+    - hosts:
+        - mlflow.ml-platform.ovh
+      secretName: mlflow-tls-cert

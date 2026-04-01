@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: s3-raw-storage
+  namespace: ml-platform
+  labels:
+    type: s3-backed
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: s3gw
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: s3gw
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: ceph.io/cephfs
+parameters:
+  # OVH S3 compatible endpoint
+  endpoint: "https://s3.gra.cloud.ovh.net"
+  bucket: "ml-platform-storage"
+  region: "gra"
+  # Enable S3FS fuse mounting
+  mountOptions: "allow_other,retries=5,multireq=5"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-airflow-pvc
+  namespace: ml-platform
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: "local-path"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-mlflow-pvc
+  namespace: ml-platform
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: "local-path"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-edf-pvc
+  namespace: ml-platform
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: "local-path"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: ml-platform
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: "local-path"

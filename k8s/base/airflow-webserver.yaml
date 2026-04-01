@@ -1,0 +1,139 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow-webserver
+  namespace: ml-platform
+  labels:
+    app: airflow
+    component: webserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airflow
+      component: webserver
+  template:
+    metadata:
+      labels:
+        app: airflow
+        component: webserver
+    spec:
+      initContainers:
+        - name: init-db
+          image: apache/airflow:2.8.1-python3.10
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for database..."
+              until python -c "import psycopg2; psycopg2.connect('postgresql://airflow:airflow@postgresql/airflow')" 2>/dev/null; do
+                sleep 5
+              done
+              echo "Database ready"
+          env:
+            - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+      containers:
+        - name: webserver
+          image: enjalbert/edf-airflow:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: webserver
+          envFrom:
+            - configMapRef:
+                name: airflow-config
+            - secretRef:
+                name: ml-platform-secrets
+          env:
+            - name: AIRFLOW__CORE__EXECUTOR
+              value: "CeleryExecutor"
+            - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+            - name: AIRFLOW__CELERY__RESULT_BACKEND
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AIRFLOW__CELERY__RESULT_BACKEND
+            - name: AIRFLOW__CELERY__BROKER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AIRFLOW__CELERY__BROKER_URL
+            - name: AIRFLOW__CORE__FERNET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AIRFLOW__CORE__FERNET_KEY
+            - name: AIRFLOW__WEBSERVER__SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AIRFLOW__WEBSERVER__SECRET_KEY"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: S3_ENDPOINT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: S3_ENDPOINT_URL
+          volumeMounts:
+            - name: dags
+              mountPath: /opt/airflow/dags
+            - name: logs
+              mountPath: /opt/airflow/logs
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: dags
+          persistentVolumeClaim:
+            claimName: s3-raw-storage
+        - name: logs
+          persistentVolumeClaim:
+            claimName: s3-raw-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow-webserver
+  namespace: ml-platform
+spec:
+  selector:
+    app: airflow
+    component: webserver
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: LoadBalancer
