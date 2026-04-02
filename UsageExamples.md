@@ -8,6 +8,30 @@
 - [dags_fr.md](dags_fr.md)
 - [local/experiments/cyril_notebook.ipynb](local/experiments/cyril_notebook.ipynb)
 
+### Import / Load the Data
+
+Run the "Data Ingestion DAG" with No Args for import the total data.
+
+### Train and Log Model
+
+Run the "Trainning Data DAG" with Args : selected_years.
+
+### Train and Log Model
+
+Run the "Batch Prediction DAG" with Args :
+
+```json
+{
+    "selected_years": [2020],
+    "selected_months": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    "selected_days": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31] 
+}
+```
+
+
+
+
+
 ## Batch prediction (Python call)
 
 Example usage of `batch_prediction()` with explicit feature columns.
