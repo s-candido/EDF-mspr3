@@ -68,6 +68,8 @@ def insert_weather(conn, df: pd.DataFrame):
     cols = ",".join(df.columns)
     placeholders = ",".join(["%s"] * len(df.columns))
 
+    print(f"[DEBUG] Colonnes à insérer dans {TABLE_NAME}: {list(df.columns)}")
+
     query = f"""
         INSERT INTO {TABLE_NAME} ({cols})
         VALUES ({placeholders})
@@ -79,6 +81,7 @@ def insert_weather(conn, df: pd.DataFrame):
 
     conn.commit()
     cur.close()
+    print(f"[DEBUG] Insertion météo terminée: {len(df)} lignes")
 
 def ingest_weather(start_year=2012, end_year=2023):
     print("Connexion PostgreSQL")

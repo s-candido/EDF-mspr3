@@ -93,6 +93,10 @@ def ingest_conso_meteo():
     print("Création de aggregated_conso_weather")
     cur.execute(SQL)
 
+    cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'aggregated_conso_weather' ORDER BY ordinal_position")
+    cols = [row[0] for row in cur.fetchall()]
+    print(f"[DEBUG] Colonnes dans aggregated_conso_weather: {cols}")
+
     cur.close()
     conn.close()
     print("aggregated_conso_weather créée")

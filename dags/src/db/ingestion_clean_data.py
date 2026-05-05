@@ -75,6 +75,8 @@ def insert_features(conn, df: pd.DataFrame):
     cols = ",".join(df.columns)
     placeholders = ",".join(["%s"] * len(df.columns))
 
+    print(f"[DEBUG] Colonnes à insérer dans {TABLE_NAME}: {list(df.columns)}")
+
     query = f"""
         INSERT INTO {TABLE_NAME} ({cols})
         VALUES ({placeholders})
@@ -86,6 +88,7 @@ def insert_features(conn, df: pd.DataFrame):
 
     conn.commit()
     cur.close()
+    print(f"[DEBUG] Insertion terminée: {len(df)} lignes")
 
 
 def ingest_features():

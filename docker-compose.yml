@@ -17,7 +17,7 @@ services:
       - ./dags:/opt/airflow/dags
       - airflow_logs:/opt/airflow/logs
     ports:
-      - "8080:8080"
+      - "8009:8080"
     entrypoint: /entrypoint.sh
     command: webserver
     networks:

@@ -119,11 +119,14 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     # normalisation des valeurs invalides
     df = df.replace(["ND", "None", "nan", ""], pd.NA)
 
+    print(f"[DEBUG] Colonnes originales: {list(df.columns)}")
+
     # Normalisation des noms de colonnes foireux
     df = df.rename(columns=COLUMN_RENAME)
 
     # schéma imposé
     df = df.reindex(columns=EXPECTED_COLS)
+    print(f"[DEBUG] Colonnes après reindex: {list(df.columns)}")
 
     # Typage automatique
     for col in df.columns:
@@ -166,6 +169,8 @@ def insert_dataframe(conn, df: pd.DataFrame):
     cols = ",".join(df.columns)
     placeholders = ",".join(["%s"] * len(df.columns))
 
+    print(f"[DEBUG] Colonnes à insérer dans {TABLE_DATA}: {list(df.columns)}")
+
     query = f"""
         INSERT INTO {TABLE_DATA} ({cols})
         VALUES ({placeholders})
@@ -177,6 +182,7 @@ def insert_dataframe(conn, df: pd.DataFrame):
 
     conn.commit()
     cur.close()
+    print(f"[DEBUG] Insertion terminée: {len(df)} lignes dans {TABLE_DATA}")
 
 def ingest_postgres():
     print("Download eco2mix")
