@@ -68,3 +68,36 @@ print(rows)
 Monthly metrics and consumption analysis are available in the Cyril notebook:
 
 - [local/experiments/cyril_notebook.ipynb](local/experiments/cyril_notebook.ipynb)
+
+
+
+## Prompt
+
+Data Processing :
+
+- Use this mapping to filter regional eco2mix consumption
+
+
+Conso Régions (eco2mix) = Consommation totale
+Conso totale (France)
+
+- Each region needs to be map with corresponding Metropoles: 
+
+    REGION_CITIES = {
+        "Auvergne-Rhône-Alpes": ["Clermont-Ferrand"],
+        "Bourgogne-Franche-Comté": ["Dijon"],
+        "Bretagne": ["Brest"],
+        "Centre-Val de Loire": ["Orléans"],
+        "Grand-Est": ["Metz"],
+        "Hauts-de-France": ["Lille"],
+        "Île-de-France": ["Paris"],
+        "Normandie": ["Rouen"],
+        "Nouvelle-Aquitaine": ["Bordeaux"],
+        "Occitanie": ["Montpellier"],
+        "PACA": ["Marseille", "Nice"],
+        "Pays-de-la-Loire": ["Nantes"],
+    }
+
+- create agg_conso_meteo_features_{region}
+
+So now conso total of the country is the mean result cities perdicted consommation 
