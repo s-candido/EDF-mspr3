@@ -27,8 +27,9 @@ Ensure you have the following installed:
 Create a cluster with enough memory. Airflow + MLflow + K3s is resource-intensive.
 
 ```bash
-# Create a cluster named 'ml-platform' with 8GB RAM limit
-k3d cluster create ml-platform --memory 8gb --k3s-arg "--disable=traefik@server:0"
+# Create a cluster named 'ml-platform' with 8GB RAM limit (server node)
+# Use the current k3d flags: `--servers-memory` (and `--agents-memory` if you create agents)
+k3d cluster create ml-platform --servers-memory 8gb --k3s-arg "--disable=traefik@server:0"
 ```
 *Note: We disable Traefik (default in k3s) to avoid conflicts with our own Ingress or port-forwarding setup.*
 
