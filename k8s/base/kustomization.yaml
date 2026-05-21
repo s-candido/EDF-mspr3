@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ml-platform
+
+resources:
+  - namespace.yaml
+  - storage.yaml
+  - secrets.yaml
+  - configmap-airflow.yaml
+  - postgresql.yaml
+  - redis.yaml
+  - edf-postgresql.yaml
+  - mlflow.yaml
+  - airflow-webserver.yaml
+  - airflow-scheduler.yaml
+  - airflow-worker.yaml
+  - ingress.yaml

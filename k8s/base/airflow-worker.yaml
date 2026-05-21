@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow-worker
+  namespace: ml-platform
+  labels:
+    app: airflow
+    component: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: airflow
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: airflow
+        component: worker
+    spec:
+      containers:
+        - name: worker
+          image: enjalbert/edf-airflow:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: airflow-config
+            - secretRef:
+                name: ml-platform-secrets
+          env:
+            - name: AIRFLOW__CORE__EXECUTOR
+              value: "CeleryExecutor"
+            - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+            - name: AIRFLOW__CELERY__RESULT_BACKEND
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AIRFLOW__CELERY__RESULT_BACKEND
+            - name: AIRFLOW__CELERY__BROKER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AIRFLOW__CELERY__BROKER_URL
+            - name: AIRFLOW__CORE__FERNET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AIRFLOW__CORE__FERNET_KEY
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: S3_ENDPOINT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ml-platform-secrets
+                  key: S3_ENDPOINT_URL
+          volumeMounts:
+            - name: dags
+              mountPath: /opt/airflow/dags
+            - name: logs
+              mountPath: /opt/airflow/logs
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "1000m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "airflow jobs check --job-type SchedulerJob --hostname $(hostname)"
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: dags
+          persistentVolumeClaim:
+            claimName: s3-raw-storage
+        - name: logs
+          persistentVolumeClaim:
+            claimName: s3-raw-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow-worker
+  namespace: ml-platform
+spec:
+  clusterIP: None
+  selector:
+    app: airflow
+    component: worker

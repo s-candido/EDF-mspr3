@@ -1,0 +1,14 @@
+FROM apache/airflow:2.8.1-python3.10
+
+COPY requirement.txt .
+
+RUN pip install --no-cache-dir -r requirement.txt
+
+COPY dags/ /opt/airflow/dags/
+
+USER root
+RUN chmod -R 755 /opt/airflow/dags/
+USER airflow
+
+ENTRYPOINT ["/bin/bash", "-c"]
+CMD ["exec airflow webserver"]
