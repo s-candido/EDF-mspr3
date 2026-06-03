@@ -1,0 +1,32 @@
+{
+  "name": "edf-mspr3",
+  "version": "1.0.0",
+  "description": "<img src=\"assets/img/image.png\" alt=\"alt text\" width=\"50%\">",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "docs:generate": "node scripts/generate-docs.mjs",
+    "docs:generate:reset": "cross-env RESET_GENERATION_STATE=true node scripts/generate-docs.mjs",
+    "docs:improve": "cross-env GENERATION_MODE=improve MAX_PAGES_PER_RUN=3 node scripts/generate-docs.mjs",
+    "docs:update": "cross-env GENERATION_MODE=update MAX_PAGES_PER_RUN=6 node scripts/generate-docs.mjs",
+    "docs:build": "cd docs && npm run build"
+  },
+  "devDependenciesToInstall": [
+    "cross-env",
+    "yaml",
+    "minimatch"
+  ],
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/genai": "^2.5.0",
+    "cross-env": "^10.1.0",
+    "dotenv": "^17.4.2",
+    "fast-glob": "^3.3.3",
+    "minimatch": "^10.2.5",
+    "yaml": "^2.9.0"
+  }
+}

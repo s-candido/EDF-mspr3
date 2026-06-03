@@ -1,0 +1,184 @@
+rules:
+  - name: documentation_structure
+    code:
+      - "README.md"
+      - "UsageExamples.md"
+      - "ChangeLog.md"
+      - "deploy.md"
+    docs:
+      - "docs/docs/intro.md"
+      - "docs/docs/functional/overview.md"
+      - "docs/docs/functional/features.md"
+      - "docs/docs/technical/architecture.md"
+      - "docs/docs/technical/deployment.md"
+      - "docs/docs/technical/troubleshooting.md"
+
+  - name: docker_and_runtime
+    code:
+      - "docker-compose.yml"
+      - "docker/**"
+      - "Dockerfile"
+      - "env_files/**/*.example"
+      - "env_files/**/example*"
+    docs:
+      - "docs/docs/technical/docker-compose.md"
+      - "docs/docs/technical/configuration.md"
+      - "docs/docs/technical/environment-variables.md"
+      - "docs/docs/technical/installation.md"
+      - "docs/docs/technical/deployment.md"
+      - "docs/docs/technical/troubleshooting.md"
+
+  - name: airflow_and_dags
+    code:
+      - "dags/**"
+      - "dags.md"
+      - "dags_fr.md"
+    docs:
+      - "docs/docs/technical/airflow.md"
+      - "docs/docs/technical/pipelines.md"
+      - "docs/docs/functional/data-flow.md"
+      - "docs/docs/functional/features.md"
+      - "docs/docs/technical/troubleshooting.md"
+
+  - name: python_backend_and_services
+    code:
+      - "src/**"
+      - "scripts/**"
+    docs:
+      - "docs/docs/technical/backend.md"
+      - "docs/docs/technical/services.md"
+      - "docs/docs/technical/scripts-python.md"
+      - "docs/docs/technical/pipelines.md"
+      - "docs/docs/technical/testing.md"
+      - "docs/docs/functional/features.md"
+      - "docs/docs/functional/business-rules.md"
+
+  - name: api
+    code:
+      - "src/**/api/**"
+      - "src/**/*api*.py"
+      - "src/**/*route*.py"
+      - "src/**/*controller*.py"
+      - "routes/**"
+      - "app/**"
+    docs:
+      - "docs/docs/technical/api.md"
+      - "docs/docs/technical/backend.md"
+      - "docs/docs/functional/features.md"
+
+  - name: authentication_and_permissions
+    code:
+      - "src/**/auth/**"
+      - "src/**/*auth*.py"
+      - "src/**/*permission*.py"
+      - "src/**/*role*.py"
+      - "src/**/*user*.py"
+      - "env_files/**/*.example"
+    docs:
+      - "docs/docs/technical/authentication.md"
+      - "docs/docs/functional/permissions.md"
+      - "docs/docs/functional/user-roles.md"
+      - "docs/docs/functional/business-rules.md"
+
+  - name: database
+    code:
+      - "src/**/*db*.py"
+      - "src/**/*database*.py"
+      - "src/**/*postgres*.py"
+      - "src/**/*sql*.py"
+      - "dags/**/*.sql"
+      - "infra/**/*sql*"
+      - "docker-compose.yml"
+    docs:
+      - "docs/docs/technical/database.md"
+      - "docs/docs/technical/configuration.md"
+      - "docs/docs/functional/data-flow.md"
+
+  - name: mlflow
+    code:
+      - "src/**/*mlflow*.py"
+      - "scripts/**/*mlflow*.py"
+      - "dags/**/*mlflow*.py"
+      - "docker-compose.yml"
+      - "README.md"
+    docs:
+      - "docs/docs/technical/mlflow.md"
+      - "docs/docs/technical/pipelines.md"
+      - "docs/docs/functional/features.md"
+
+  - name: notebooks
+    code:
+      - "notebooks/**"
+      - "**/*.ipynb"
+    docs:
+      - "docs/docs/technical/notebooks.md"
+      - "docs/docs/functional/features.md"
+
+  - name: tests
+    code:
+      - "tests/**"
+      - "test/**"
+      - "**/*test*.py"
+      - "**/*spec*.py"
+    docs:
+      - "docs/docs/technical/testing.md"
+      - "docs/docs/technical/troubleshooting.md"
+
+  - name: dependencies
+    code:
+      - "requirement.txt"
+      - "requirements.txt"
+      - "pyproject.toml"
+      - "package.json"
+      - "package-lock.json"
+    docs:
+      - "docs/docs/technical/installation.md"
+      - "docs/docs/technical/configuration.md"
+      - "docs/docs/technical/deployment.md"
+      - "docs/docs/technical/troubleshooting.md"
+
+  - name: frontend
+    code:
+      - "frontend/**"
+      - "web/**"
+      - "app/**"
+      - "pages/**"
+      - "src/**/*.{js,jsx,ts,tsx}"
+    docs:
+      - "docs/docs/technical/frontend.md"
+      - "docs/docs/functional/user-journeys.md"
+      - "docs/docs/functional/features.md"
+
+  - name: infra_and_deployment
+    code:
+      - "infra/**"
+      - "k8s/**"
+      - ".github/workflows/**"
+      - "deploy.md"
+      - "docker-compose.yml"
+    docs:
+      - "docs/docs/technical/deployment.md"
+      - "docs/docs/technical/configuration.md"
+      - "docs/docs/technical/troubleshooting.md"
+
+  - name: functional_user_docs
+    code:
+      - "README.md"
+      - "UsageExamples.md"
+      - "docs/**"
+    docs:
+      - "docs/docs/functional/user-journeys.md"
+      - "docs/docs/functional/user-roles.md"
+      - "docs/docs/functional/permissions.md"
+      - "docs/docs/functional/glossary.md"
+
+  - name: glossary
+    code:
+      - "README.md"
+      - "dags.md"
+      - "dags_fr.md"
+      - "UsageExamples.md"
+      - "src/**"
+      - "dags/**"
+    docs:
+      - "docs/docs/functional/glossary.md"

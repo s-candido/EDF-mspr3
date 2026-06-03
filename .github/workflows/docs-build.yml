@@ -1,0 +1,44 @@
+name: Build Documentation
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - ".ai-docs/**"
+      - "scripts/**"
+      - "package.json"
+      - "package-lock.json"
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - "docs/**"
+      - ".ai-docs/**"
+      - "scripts/**"
+      - "package.json"
+      - "package-lock.json"
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install Docusaurus dependencies
+        working-directory: docs
+        run: npm install
+
+      - name: Build Docusaurus
+        working-directory: docs
+        run: npm run build

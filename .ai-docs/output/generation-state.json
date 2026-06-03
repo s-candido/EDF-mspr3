@@ -1,0 +1,25 @@
+{
+  "generatedPages": [
+    {
+      "path": "docs/docs/functional/overview.md",
+      "title": "Vue d’ensemble fonctionnelle",
+      "mode": "generate",
+      "generatedAt": "2026-06-01T11:52:14.724Z"
+    },
+    {
+      "path": "docs/docs/functional/data-flow.md",
+      "title": "Flux fonctionnel des données",
+      "mode": "generate",
+      "generatedAt": "2026-06-01T11:52:14.724Z"
+    },
+    {
+      "path": "docs/docs/functional/features.md",
+      "title": "Fonctionnalités",
+      "mode": "generate",
+      "generatedAt": "2026-06-01T11:52:14.724Z"
+    }
+  ],
+  "updatedPages": [],
+  "improvedPages": [],
+  "lastRun": "2026-06-01T11:52:14.724Z"
+}

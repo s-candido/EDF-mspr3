@@ -1,0 +1,191 @@
+[
+  {
+    "outputPath": "docs/docs/functional/overview.md",
+    "type": "functional",
+    "title": "Vue d’ensemble fonctionnelle",
+    "description": "Présenter l’objectif métier du projet EDF-MSPR3, le problème traité, la valeur apportée, les données utilisées et les résultats attendus.",
+    "mustIncludeDiagrams": ["mindmap", "flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/functional/data-flow.md",
+    "type": "functional",
+    "title": "Flux fonctionnel des données",
+    "description": "Décrire le parcours fonctionnel des données depuis leur ingestion jusqu’à leur exploitation pour la prédiction énergétique.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/functional/features.md",
+    "type": "functional",
+    "title": "Fonctionnalités",
+    "description": "Lister et expliquer les fonctionnalités identifiables dans le repository : ingestion, traitement, entraînement, prédiction, tracking, orchestration et consultation.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/functional/user-journeys.md",
+    "type": "functional",
+    "title": "Parcours utilisateurs",
+    "description": "Décrire les parcours utilisateurs ou opérateurs autour de l’utilisation du pipeline, de l’exécution des traitements et de l’analyse des résultats.",
+    "mustIncludeDiagrams": ["journey", "flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/functional/user-roles.md",
+    "type": "functional",
+    "title": "Rôles utilisateurs",
+    "description": "Identifier les profils utilisateurs, opérateurs ou mainteneurs visibles ou déductibles du repository, ainsi que leurs responsabilités dans l’utilisation du projet.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/functional/permissions.md",
+    "type": "functional",
+    "title": "Permissions",
+    "description": "Documenter les permissions, accès, comptes, rôles ou restrictions visibles dans le repository, notamment pour Airflow, MLflow, PostgreSQL ou les services Docker.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/functional/business-rules.md",
+    "type": "functional",
+    "title": "Règles métier",
+    "description": "Identifier les règles métier visibles ou déductibles du code, des scripts, de la documentation et des pipelines.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/functional/glossary.md",
+    "type": "functional",
+    "title": "Glossaire",
+    "description": "Créer un glossaire clair des termes métier, techniques et MLOps utilisés dans le projet.",
+    "mustIncludeDiagrams": []
+  },
+  {
+    "outputPath": "docs/docs/technical/architecture.md",
+    "type": "technical",
+    "title": "Architecture technique",
+    "description": "Documenter l’architecture globale du projet : Docker Compose, Airflow, MLflow, PostgreSQL, scripts Python, notebooks et flux entre composants.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/technical/docker-compose.md",
+    "type": "technical",
+    "title": "Docker Compose",
+    "description": "Documenter les services Docker Compose, les ports, volumes, dépendances et commandes utiles.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/technical/configuration.md",
+    "type": "technical",
+    "title": "Configuration",
+    "description": "Documenter la configuration du projet : fichiers d’environnement, paramètres Docker, dépendances, variables et éléments nécessaires au bon fonctionnement.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/technical/environment-variables.md",
+    "type": "technical",
+    "title": "Variables d’environnement",
+    "description": "Lister et expliquer les variables d’environnement visibles ou documentées dans le repository, sans jamais recopier de secret ou de valeur sensible.",
+    "mustIncludeDiagrams": []
+  },
+  {
+    "outputPath": "docs/docs/technical/installation.md",
+    "type": "technical",
+    "title": "Installation",
+    "description": "Documenter les prérequis, dépendances, commandes d’installation et étapes de lancement local du projet.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/technical/airflow.md",
+    "type": "technical",
+    "title": "Airflow et DAGs",
+    "description": "Documenter Airflow, les DAGs, les tâches, l’orchestration et la logique des pipelines.",
+    "mustIncludeDiagrams": ["flowchart", "sequenceDiagram"]
+  },
+  {
+    "outputPath": "docs/docs/technical/mlflow.md",
+    "type": "technical",
+    "title": "MLflow",
+    "description": "Documenter MLflow, le tracking, les expériences, les modèles et l’interface.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/technical/database.md",
+    "type": "technical",
+    "title": "Base de données PostgreSQL",
+    "description": "Documenter le rôle de PostgreSQL, les données stockées, la configuration et les usages visibles dans le code.",
+    "mustIncludeDiagrams": ["erDiagram", "flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/technical/pipelines.md",
+    "type": "technical",
+    "title": "Pipelines de traitement",
+    "description": "Documenter les pipelines de traitement, d’entraînement, de prédiction batch et leur enchaînement.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/technical/scripts-python.md",
+    "type": "technical",
+    "title": "Scripts Python",
+    "description": "Documenter les scripts Python importants, leur rôle, leurs entrées, leurs sorties et leurs dépendances.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/technical/backend.md",
+    "type": "technical",
+    "title": "Backend",
+    "description": "Documenter la logique backend ou serveur identifiable dans le repository : scripts, modules Python, traitements, services internes et responsabilités techniques.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/technical/services.md",
+    "type": "technical",
+    "title": "Services",
+    "description": "Documenter les services techniques du projet, leurs responsabilités, leurs dépendances et leurs interactions.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/technical/api.md",
+    "type": "technical",
+    "title": "API",
+    "description": "Documenter les API, routes, interfaces ou points d’entrée programmatiques visibles dans le repository. Si aucune API applicative n’est confirmée, expliquer clairement ce qui est absent ou à vérifier.",
+    "mustIncludeDiagrams": []
+  },
+  {
+    "outputPath": "docs/docs/technical/authentication.md",
+    "type": "technical",
+    "title": "Authentification",
+    "description": "Documenter les mécanismes d’authentification visibles dans le repository. Si aucune authentification applicative n’est confirmée, distinguer les accès techniques Airflow, MLflow ou PostgreSQL des mécanismes applicatifs.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/technical/frontend.md",
+    "type": "technical",
+    "title": "Frontend",
+    "description": "Documenter l’existence ou l’absence d’un frontend applicatif dans le projet. Si aucun frontend n’est confirmé, expliquer les interfaces techniques disponibles comme Airflow UI, MLflow UI ou Docusaurus.",
+    "mustIncludeDiagrams": []
+  },
+  {
+    "outputPath": "docs/docs/technical/notebooks.md",
+    "type": "technical",
+    "title": "Notebooks",
+    "description": "Documenter le rôle des notebooks présents dans le repository : exploration, expérimentation, analyse ou validation.",
+    "mustIncludeDiagrams": []
+  },
+  {
+    "outputPath": "docs/docs/technical/deployment.md",
+    "type": "technical",
+    "title": "Déploiement",
+    "description": "Documenter le démarrage, le déploiement, les commandes Docker Compose, les ports et la mise en production si elle est documentée.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/technical/testing.md",
+    "type": "technical",
+    "title": "Tests",
+    "description": "Documenter les tests, scripts de validation, vérifications manuelles ou absences de tests détectables dans le repository.",
+    "mustIncludeDiagrams": ["flowchart"]
+  },
+  {
+    "outputPath": "docs/docs/technical/troubleshooting.md",
+    "type": "technical",
+    "title": "Troubleshooting",
+    "description": "Créer une page d’aide pour diagnostiquer les erreurs fréquentes : Docker, Airflow, MLflow, PostgreSQL, dépendances Python et données.",
+    "mustIncludeDiagrams": []
+  }
+]

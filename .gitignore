@@ -4,4 +4,6 @@ __pycache__/
 /.ruff_caches
 dbs_mlflow/
 postgresql_data/
-mlflow/
+mlflow/.env
+.env
+node_modules/
