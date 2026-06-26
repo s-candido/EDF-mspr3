@@ -132,6 +132,28 @@ services:
       - edf_network
 
 
+  streamlit:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.streamlit
+    container_name: streamlit-dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      DB_HOST: edf_postgresql
+      DB_PORT: "5432"
+      DB_NAME: postgres
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    volumes:
+      - ./frontend:/app/frontend
+    networks:
+      - edf_network
+    depends_on:
+      edf_postgresql:
+        condition: service_started
+
+
 networks:
   edf_network:
     driver: bridge

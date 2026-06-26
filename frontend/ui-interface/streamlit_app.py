@@ -9,6 +9,7 @@ Features:
 - Multiple visualization options
 """
 
+import os
 import streamlit as st
 import pandas as pd
 import psycopg2
@@ -22,13 +23,12 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-# Configuration
 DB_CONFIG = {
-    "host": "localhost",
-    "database": "postgres",
-    "user": "postgres",
-    "password": "postgres",
-    "port": 5441,
+    "host": os.environ.get("DB_HOST", "localhost"),
+    "database": os.environ.get("DB_NAME", "postgres"),
+    "user": os.environ.get("DB_USER", "postgres"),
+    "password": os.environ.get("DB_PASSWORD", "postgres"),
+    "port": int(os.environ.get("DB_PORT", "5441")),
 }
 
 PREDICT_TABLE = "batch_predictions_[2020]_30_01_2026"
