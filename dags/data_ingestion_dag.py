@@ -36,7 +36,7 @@ with DAG(
         python_callable=run_full_pipeline,
         op_kwargs={
             "start_date": "2020-01-01",
-            "end_date": "2020-12-31", 
+            "end_date": "2022-12-31", 
             "data_dir": DATA_DIR,
             "cleanup": True
         },

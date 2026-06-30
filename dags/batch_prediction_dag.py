@@ -47,6 +47,8 @@ with DAG(
         "selected_years": [2020],
         "selected_months": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
         "selected_days": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
+        "model_exp": ""(default = get_last_experiment_name()),
+        "fallback_model": False,
         }) as dag:
 
 
@@ -70,7 +72,6 @@ with DAG(
         task_id="batch_prediction_job",
         python_callable=batch_prediction,
         op_kwargs={
-            "model_name": "MODEL_EDF",
             "source_table": PREPARED_TABLE,
             "prediction_table": PREDICTION_TABLE,
             "feature_columns": FEATURE_COLUMNS,

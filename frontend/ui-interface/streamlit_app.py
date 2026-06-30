@@ -31,7 +31,6 @@ DB_CONFIG = {
     "port": int(os.environ.get("DB_PORT", "5441")),
 }
 
-PREDICT_TABLE = "batch_predictions_[2020]_30_01_2026"
 TRUE_TABLE = "agg_conso_meteo_features"
 
 
@@ -64,7 +63,7 @@ class ConsumptionDataInterface:
     
     def fetch_predictions(
         self,
-        table_name: str = PREDICT_TABLE,
+        table_name: str,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> pd.DataFrame:
@@ -159,6 +158,88 @@ class ConsumptionDataInterface:
             'Mean_Actual': y_true.mean(),
             'Mean_Predicted': y_pred.mean()
         }
+
+
+@st.cache_data(ttl=120)
+def discover_prediction_tables(_conn) -> List[str]:
+    """Discover all batch_predictions* tables in the database."""
+    try:
+        query = """
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+              AND table_name LIKE 'batch_predictions%%'
+              AND table_type = 'BASE TABLE'
+            ORDER BY table_name
+        """
+        df = pd.read_sql_query(query, _conn)
+        return df["table_name"].tolist()
+    except Exception as e:
+        st.warning(f"Could not discover prediction tables: {e}")
+        return []
+
+
+@st.cache_data(ttl=120)
+def get_prediction_range(_conn, tables: List[str]) -> tuple:
+    """Get the global min and max datetime across all prediction tables."""
+    if not tables:
+        return None, None
+    try:
+        parts = [
+            f'SELECT MIN(datetime) as min_dt, MAX(datetime) as max_dt FROM "{t}"'
+            for t in tables
+        ]
+        union_query = " UNION ALL ".join(parts)
+        full_query = (
+            f"SELECT MIN(min_dt) as min_dt, MAX(max_dt) as max_dt "
+            f"FROM ({union_query}) AS combined"
+        )
+        df = pd.read_sql_query(full_query, _conn)
+        if df.empty or df['min_dt'].isna().all():
+            return None, None
+        return df['min_dt'].iloc[0], df['max_dt'].iloc[0]
+    except Exception as e:
+        st.warning(f"Could not get prediction range: {e}")
+        return None, None
+
+
+@st.cache_data(ttl=60)
+def fetch_all_predictions(
+    _conn,
+    tables: List[str],
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None
+) -> pd.DataFrame:
+    """Fetch predictions from ALL discovered tables and union them (latest per datetime wins)."""
+    if not tables:
+        return pd.DataFrame()
+    try:
+        parts = []
+        for tbl in tables:
+            query = f'SELECT datetime, prediction FROM "{tbl}"'
+            conditions = []
+            if start_date:
+                conditions.append(f"datetime >= '{start_date}'")
+            if end_date:
+                conditions.append(f"datetime <= '{end_date}'")
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+            parts.append(query)
+
+        full_query = " UNION ALL ".join(parts) + " ORDER BY datetime"
+        df = pd.read_sql_query(full_query, _conn)
+
+        if 'datetime' in df.columns:
+            df['datetime'] = pd.to_datetime(df['datetime'])
+
+        # Duplicates on same datetime: keep last (latest model table wins)
+        df = df.drop_duplicates(subset=["datetime"], keep="last") \
+               .sort_values("datetime").reset_index(drop=True)
+
+        return df
+    except Exception as e:
+        st.warning(f"Error fetching predictions: {e}")
+        return pd.DataFrame()
 
 
 def plot_consumption_comparison(merged_df: pd.DataFrame) -> go.Figure:
@@ -364,28 +445,6 @@ def main():
         
         st.success("✓ Database connected")
         
-        # Date range selection
-        st.subheader("Date Range")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            start_date = st.date_input(
-                "Start Date",
-                value=datetime(2020, 1, 1),
-                key="start_date"
-            )
-        
-        with col2:
-            end_date = st.date_input(
-                "End Date",
-                value=datetime(2020, 1, 31),
-                key="end_date"
-            )
-        
-        # Fetch button
-        if st.button("📊 Fetch Data", key="fetch_btn"):
-            st.session_state.fetch_data = True
-        
         # Visualization type selection
         st.subheader("Visualization Type")
         viz_type = st.radio(
@@ -395,149 +454,177 @@ def main():
         
         st.session_state.viz_type = viz_type
     
-    # Main content area
-    if "fetch_data" in st.session_state and st.session_state.fetch_data:
-        with st.spinner("Loading data..."):
+    # ── Auto-discover prediction tables (once) ──
+    if "tables" not in st.session_state:
+        with st.spinner("🔍 Scanning database for prediction tables..."):
+            tables = discover_prediction_tables(interface.conn)
+            st.session_state.tables = tables
+            if tables:
+                st.info(f"✅ Found {len(tables)} prediction table(s)")
+                global_min, global_max = get_prediction_range(interface.conn, tables)
+                if global_max is not None:
+                    st.session_state.default_end = global_max
+                    st.session_state.default_start = global_max - timedelta(days=30)
+                else:
+                    st.session_state.default_end = datetime(2020, 1, 31)
+                    st.session_state.default_start = datetime(2020, 1, 1)
+            else:
+                st.warning("ℹ️ No prediction tables found. Run a batch prediction DAG first.")
+                st.session_state.default_end = datetime(2020, 1, 31)
+                st.session_state.default_start = datetime(2020, 1, 1)
+
+    # ── Date inputs in main content (always visible) ──
+    tables = st.session_state.get("tables", [])
+
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input(
+            "Start Date",
+            value=st.session_state.get("default_start", datetime(2020, 1, 1)),
+        )
+    with col2:
+        end_date = st.date_input(
+            "End Date",
+            value=st.session_state.get("default_end", datetime(2020, 1, 31)),
+        )
+
+    # ── Auto-fetch on first load or date change ──
+    start_dt = datetime.combine(start_date, datetime.min.time())
+    end_dt = datetime.combine(end_date, datetime.min.time())
+
+    fetch_key = f"{start_date}|{end_date}"
+    if "last_fetch_key" not in st.session_state or st.session_state.last_fetch_key != fetch_key:
+        st.session_state.last_fetch_key = fetch_key
+
+        with st.spinner("📊 Loading data..."):
             interface = init_interface()
             interface.connect()
-            
-            # Fetch data
-            predict_df = interface.fetch_predictions(start_date=start_date, end_date=end_date)
-            actual_df = interface.fetch_actual(start_date=start_date, end_date=end_date)
-            
-            if predict_df.empty or actual_df.empty:
-                st.error("No data found for the selected date range")
-                interface.disconnect()
-                return
-            
+
+            predict_df = fetch_all_predictions(interface.conn, tables, start_dt, end_dt)
+            actual_df = interface.fetch_actual(start_date=start_dt, end_date=end_dt)
+
             interface.disconnect()
-            
-            # Store in session state
+
+            if not predict_df.empty or not actual_df.empty:
+                parts = []
+                if not predict_df.empty:
+                    parts.append(f"{len(predict_df)} prediction records")
+                if not actual_df.empty:
+                    parts.append(f"{len(actual_df)} actual records")
+                st.success(f"✓ Loaded {' and '.join(parts)}")
+            else:
+                st.warning("No data found for the selected date range")
+
             st.session_state.predict_df = predict_df
             st.session_state.actual_df = actual_df
-            st.session_state.predict_df_all = predict_df
-            st.session_state.actual_df_all = actual_df
-        
-        st.success(f"✓ Loaded {len(predict_df)} prediction records and {len(actual_df)} actual records")
-    
-    # Display visualizations
-    if "predict_df" in st.session_state and "actual_df" in st.session_state:
-        predict_df = st.session_state.predict_df
-        actual_df = st.session_state.actual_df
-        
+
+    st.markdown("---")
+
+    # ── Display visualizations ──
+    has_predict = "predict_df" in st.session_state and not st.session_state.predict_df.empty
+    has_actual = "actual_df" in st.session_state and not st.session_state.actual_df.empty
+
+    if has_predict or has_actual:
+        predict_df = st.session_state.get("predict_df", pd.DataFrame())
+        actual_df = st.session_state.get("actual_df", pd.DataFrame())
         viz_type = st.session_state.get("viz_type", "Consumption Comparison")
-        
+
         if viz_type == "Consumption Comparison":
             st.subheader("📈 Predicted vs Actual Consumption")
-            
-            merged_df = pd.merge(
-                predict_df[['datetime', 'prediction']],
-                actual_df[['datetime', 'consommation']],
-                on='datetime',
-                how='inner'
-            )
-            
-            # Display metrics
-            col1, col2, col3, col4, col5 = st.columns(5)
-            
-            interface = ConsumptionDataInterface(DB_CONFIG)
-            metrics = interface.calculate_metrics(merged_df)
-            
-            with col1:
-                st.metric("MAE", f"{metrics.get('MAE', 0):.2f} kWh")
-            with col2:
-                st.metric("RMSE", f"{metrics.get('RMSE', 0):.2f} kWh")
-            with col3:
-                st.metric("MAPE", f"{metrics.get('MAPE', 0):.2f}%")
-            with col4:
-                st.metric("Avg Actual", f"{metrics.get('Mean_Actual', 0):.2f} kWh")
-            with col5:
-                st.metric("Avg Predicted", f"{metrics.get('Mean_Predicted', 0):.2f} kWh")
-            
-            st.plotly_chart(plot_consumption_comparison(merged_df), use_container_width=True)
-            
-            # Scatter plot
-            st.subheader("🎯 Correlation Analysis")
-            st.plotly_chart(plot_scatter(merged_df), use_container_width=True)
-        
+
+            if has_predict and has_actual:
+                merged_df = pd.merge(
+                    predict_df[['datetime', 'prediction']],
+                    actual_df[['datetime', 'consommation']],
+                    on='datetime',
+                    how='inner'
+                )
+
+                if merged_df.empty:
+                    st.info("No overlapping datetime between predictions and actual data for the selected range.")
+                else:
+                    col1, col2, col3, col4, col5 = st.columns(5)
+                    interface = ConsumptionDataInterface(DB_CONFIG)
+                    metrics = interface.calculate_metrics(merged_df)
+
+                    with col1:
+                        st.metric("MAE", f"{metrics.get('MAE', 0):.2f} kWh")
+                    with col2:
+                        st.metric("RMSE", f"{metrics.get('RMSE', 0):.2f} kWh")
+                    with col3:
+                        st.metric("MAPE", f"{metrics.get('MAPE', 0):.2f}%")
+                    with col4:
+                        st.metric("Avg Actual", f"{metrics.get('Mean_Actual', 0):.2f} kWh")
+                    with col5:
+                        st.metric("Avg Predicted", f"{metrics.get('Mean_Predicted', 0):.2f} kWh")
+
+                    st.plotly_chart(plot_consumption_comparison(merged_df), use_container_width=True)
+                    st.subheader("🎯 Correlation Analysis")
+                    st.plotly_chart(plot_scatter(merged_df), use_container_width=True)
+            else:
+                st.info("Need both prediction and actual data for consumption comparison.")
+
         elif viz_type == "Column Analysis":
             st.subheader("📊 Single Column Analysis")
-            
-            # Get available columns from actual_df
-            available_cols = [col for col in actual_df.columns if col != 'datetime']
-            
-            selected_column = st.selectbox(
-                "Select Column to Visualize:",
-                available_cols,
-                key="single_column"
-            )
-            
-            if selected_column:
-                st.plotly_chart(
-                    plot_column_over_time(actual_df, selected_column),
-                    use_container_width=True
-                )
-                
-                # Display statistics
-                col1, col2, col3, col4 = st.columns(4)
-                data = actual_df[selected_column].dropna()
-                
-                with col1:
-                    st.metric("Mean", f"{data.mean():.2f}")
-                with col2:
-                    st.metric("Min", f"{data.min():.2f}")
-                with col3:
-                    st.metric("Max", f"{data.max():.2f}")
-                with col4:
-                    st.metric("Std Dev", f"{data.std():.2f}")
-        
+            if has_actual:
+                available_cols = [col for col in actual_df.columns if col != 'datetime']
+                selected_column = st.selectbox("Select Column to Visualize:", available_cols, key="single_column")
+                if selected_column:
+                    st.plotly_chart(plot_column_over_time(actual_df, selected_column), use_container_width=True)
+                    col1, col2, col3, col4 = st.columns(4)
+                    data = actual_df[selected_column].dropna()
+                    with col1:
+                        st.metric("Mean", f"{data.mean():.2f}")
+                    with col2:
+                        st.metric("Min", f"{data.min():.2f}")
+                    with col3:
+                        st.metric("Max", f"{data.max():.2f}")
+                    with col4:
+                        st.metric("Std Dev", f"{data.std():.2f}")
+            else:
+                st.info("No actual data available for the selected range.")
+
         elif viz_type == "Multi-Column Analysis":
             st.subheader("📉 Multiple Columns Comparison")
-            
-            available_cols = [col for col in actual_df.columns if col != 'datetime']
-            
-            selected_columns = st.multiselect(
-                "Select Columns to Compare:",
-                available_cols,
-                default=available_cols[:3],
-                key="multi_column"
-            )
-            
-            if selected_columns:
-                st.plotly_chart(
-                    plot_multiple_columns(actual_df, selected_columns),
-                    use_container_width=True
+            if has_actual:
+                available_cols = [col for col in actual_df.columns if col != 'datetime']
+                selected_columns = st.multiselect(
+                    "Select Columns to Compare:", available_cols,
+                    default=available_cols[:3], key="multi_column"
                 )
-                
-                # Display statistics table
-                st.subheader("Statistics")
-                stats_data = actual_df[selected_columns].describe().T
-                st.dataframe(stats_data, use_container_width=True)
-        
+                if selected_columns:
+                    st.plotly_chart(plot_multiple_columns(actual_df, selected_columns), use_container_width=True)
+                    st.subheader("Statistics")
+                    stats_data = actual_df[selected_columns].describe().T
+                    st.dataframe(stats_data, use_container_width=True)
+            else:
+                st.info("No actual data available for the selected range.")
+
         elif viz_type == "Scatter Plot":
             st.subheader("🎯 Prediction Accuracy")
-            
-            merged_df = pd.merge(
-                predict_df[['datetime', 'prediction']],
-                actual_df[['datetime', 'consommation']],
-                on='datetime',
-                how='inner'
-            )
-            
-            st.plotly_chart(plot_scatter(merged_df), use_container_width=True)
-            
-            # Display correlation info
-            col1, col2 = st.columns(2)
-            correlation = np.corrcoef(merged_df['consommation'], merged_df['prediction'])[0, 1]
-            r_squared = correlation ** 2
-            
-            with col1:
-                st.metric("Correlation", f"{correlation:.4f}")
-            with col2:
-                st.metric("R² Score", f"{r_squared:.4f}")
-    
+            if has_predict and has_actual:
+                merged_df = pd.merge(
+                    predict_df[['datetime', 'prediction']],
+                    actual_df[['datetime', 'consommation']],
+                    on='datetime',
+                    how='inner'
+                )
+                if merged_df.empty:
+                    st.info("No overlapping datetime for the selected range.")
+                else:
+                    st.plotly_chart(plot_scatter(merged_df), use_container_width=True)
+                    col1, col2 = st.columns(2)
+                    correlation = np.corrcoef(merged_df['consommation'], merged_df['prediction'])[0, 1]
+                    r_squared = correlation ** 2
+                    with col1:
+                        st.metric("Correlation", f"{correlation:.4f}")
+                    with col2:
+                        st.metric("R² Score", f"{r_squared:.4f}")
+            else:
+                st.info("Need both prediction and actual data for scatter plot.")
+
     else:
-        st.info("👈 Click 'Fetch Data' in the sidebar to load data and start analyzing")
+        st.info("👈 Select a date range above. Data will load automatically when prediction tables exist.")
     
     # Footer
     st.markdown("---")

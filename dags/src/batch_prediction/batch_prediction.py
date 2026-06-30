@@ -7,7 +7,6 @@ import psycopg2
 from psycopg2 import sql
 from psycopg2.extras import execute_values
 from mlflow.pyfunc import load_model
-from src.mlflow.pull_model_from_mlflow import get_latest_model_version
 from src.batch_prediction.db_utils import create_table_from_dataframe
 from airflow import DAG
 from mlflow.tracking import MlflowClient
@@ -25,50 +24,25 @@ MODEL_NAME = "MODEL_EDF"
 
 TARGET = "consommation"
 
-def get_latest_model_version(model_name: str) -> int:
-    """
-    Get the latest version of a model from the MLflow model registry.
-
-    Args:
-        model_name (str): The name of the model in the MLflow model registry.
-
-    Returns:
-        int: The latest version of the model.
-    """
-    try:
-        client = MlflowClient()
-        versions = client.get_latest_versions(model_name, stages=["None", "Staging", "Production"])
-        if versions:
-            latest_version = max(int(version.version) for version in versions)
-            print(f"Latest version of model '{model_name}' is: {latest_version}")
-            return latest_version
-        else:
-            print(f"No versions found for model '{model_name}'.")
-            return None
-    except Exception as e:
-        print(f"Error fetching latest version: {e}")
-        return None
-    
-
 def batch_prediction(**context):
     """
-    Load a model from MLflow, run batch predictions on a SQL table, and store results.
+    Load a model from an MLflow experiment, run batch predictions, and store results.
 
     Args:
-        model_name: MLflow model registry name.
         source_table: SQL table containing data to predict.
         prediction_table: SQL table to store predictions.
         feature_columns: List of columns to use as model features.
         db_config: PostgreSQL connection parameters.
         mlflow_url: MLflow tracking URI.
         context: Airflow task context containing dag_run configuration.
+        model_exp (dag_run.conf): MLflow experiment name (empty = auto-detect latest).
+        fallback_model (dag_run.conf): Use fallback model instead of best (default True).
 
     Returns:
         Number of predictions inserted.
     """
     dag_run_conf = context.get('dag_run').conf or {} if context else {}
 
-    model_name = dag_run_conf.get('model_name', [])
     source_table = context.get('source_table')
     prediction_table = context.get('prediction_table')
     feature_columns = context.get('feature_columns', [])
@@ -77,9 +51,10 @@ def batch_prediction(**context):
     selected_years = dag_run_conf.get('selected_years', [])
     selected_months = dag_run_conf.get('selected_months', [])
     selected_days = dag_run_conf.get('selected_days', [])
+    experiment_name = dag_run_conf.get('model_exp', '')
+    use_fallback = dag_run_conf.get('fallback_model', True)
 
     print(" --------------  Batch prediction inputs -------------- ")
-    print(f"model_name: {context.get('model_name')}")
     print(f"source_table: {context.get('source_table')}")
     print(f"prediction_table: {context.get('prediction_table')}")
     print(f"feature_columns: {list(context.get('feature_columns', []))}")
@@ -88,16 +63,57 @@ def batch_prediction(**context):
     print(f"selected_years: {selected_years}")
     print(f"selected_months: {selected_months}")
     print(f"selected_days: {selected_days}")
+    print(f"experiment_name: '{experiment_name}' (empty=auto-detect)")
+    print(f"use_fallback: {use_fallback}")
 
 
     mlflow.set_tracking_uri(mlflow_url)
+    client = MlflowClient(tracking_uri=mlflow_url)
 
-    version = get_latest_model_version(MODEL_NAME)
+    resolved_exp = experiment_name
+    if not resolved_exp:
+        experiments = client.search_experiments(
+            view_type=mlflow.entities.ViewType.ACTIVE_ONLY,
+            order_by=["creation_time DESC"],
+            max_results=10,
+        )
+        for exp in experiments:
+            if exp.name.startswith("MODEL_EDF_"):
+                resolved_exp = exp.name
+                break
+        if not resolved_exp:
+            raise ValueError("No MODEL_EDF_* experiment found. Run training DAG first.")
+        print(f"Auto-detected latest experiment: {resolved_exp}")
 
-    if version is None:
-        raise ValueError(f"No MLflow model version found for '{model_name}'.")
-    model_name = MODEL_NAME
-    model_uri = f"models:/{model_name}/{version}"
+    experiment = client.get_experiment_by_name(resolved_exp)
+    if not experiment:
+        raise ValueError(f"Experiment '{resolved_exp}' not found")
+
+    runs = client.search_runs(
+        experiment_ids=[experiment.experiment_id],
+        order_by=["attribute.start_time DESC"],
+        max_results=1,
+    )
+    if not runs:
+        raise ValueError(f"No runs found in experiment '{resolved_exp}'")
+
+    run = runs[0]
+    run_id = run.info.run_id
+
+    if use_fallback:
+        fallback_type = run.data.params.get("fallback_model_type", "")
+        if not fallback_type:
+            raise ValueError(
+                f"No fallback model in experiment '{resolved_exp}'. "
+                f"Train with this experiment first, or set fallback_model to false."
+            )
+        artifact_path = f"fallback_{fallback_type}"
+        print(f"Using fallback model '{artifact_path}' from run {run_id}")
+    else:
+        artifact_path = MODEL_NAME
+        print(f"Using best model '{artifact_path}' from run {run_id}")
+
+    model_uri = f"runs:/{run_id}/{artifact_path}"
     model = load_model(model_uri)
 
     feature_columns = list(feature_columns)
@@ -146,7 +162,8 @@ def batch_prediction(**context):
 
 
         current_date = datetime.now().strftime("%d_%m_%Y")
-        prediction_table_name_agg = f"{prediction_table}_{selected_years}_{current_date}"
+        run_date = datetime.fromtimestamp(run.info.start_time / 1000).strftime("%Y%m%d")
+        prediction_table_name_agg = f"{prediction_table}_{selected_years}_{current_date}_{artifact_path}_{run_date}"
         
         create_table_from_dataframe(conn, prediction_table_name_agg, result_df)
 
