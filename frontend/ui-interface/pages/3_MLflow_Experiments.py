@@ -52,7 +52,7 @@ def list_experiments():
 def search_runs(experiment_ids):
     data = _api_post("/api/2.0/mlflow/search/runs", {
         "experiment_ids": experiment_ids,
-        "order_by": ["start_time DESC"],
+        "order_by": ["attribute.start_time DESC"],
         "max_results": 50,
     })
     return data.get("runs", [])

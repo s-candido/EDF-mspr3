@@ -1,0 +1,49 @@
+image: python:3.9
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
+cache:
+  paths:
+    - .pip-cache/
+    - .venv/
+
+before_script:
+  - python --version
+  - python -m venv .venv
+  - source .venv/bin/activate
+  - pip install --upgrade pip
+  # Install project dependencies
+  - pip install -r requirement.txt
+  # Install test dependencies
+  - pip install pytest pytest-cov
+  # Install missing ML dependencies not in requirement.txt
+  - pip install xgboost scipy
+  - pip list 2>/dev/null | head -5
+
+stages:
+  - test
+
+dags-unit-tests:
+  stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: always
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: always
+    - when: never
+  script:
+    - source .venv/bin/activate
+    - cd dags/src
+    - python -m pytest test/ -v --cov=./ --cov-report=term --cov-report=xml --tb=short -p no:cacheprovider
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: dags/src/coverage.xml
+    paths:
+      - dags/src/coverage.xml
+  coverage: '/TOTAL.*\s+(\d+%)$/'

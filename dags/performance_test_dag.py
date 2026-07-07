@@ -5,7 +5,7 @@ from airflow.operators.python import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.utils.trigger_rule import TriggerRule
 
-from src.test.performance_test import (
+from src.performance_test.performance_test import (
     run_performance_test,
     check_data_availability,
 )

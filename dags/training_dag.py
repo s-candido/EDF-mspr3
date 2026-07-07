@@ -18,6 +18,7 @@ sys.path.append('/opt/airflow/dags/src')
 from src.modeling.train import train_models
 from src.modeling.evaluate import evaluate_model
 from src.batch_prediction.data_prep import prepare_batch_prediction_data
+from src.mlflow.mlflow_utils import create_experiment_and_start_run
 
 correlation_id = uuid.uuid4()
 MY_LOCAL_ASSETS = "/opt/airflow/dags"
@@ -123,80 +124,82 @@ def train_and_log_model(**context):
     else:
         print("No fallback model")
 
-    mlflow.set_tracking_uri(MLFLOW_URL)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     experiment_name = f"{MODEL_NAME}_{best_name}_{timestamp}"
-    experiment_id = mlflow.create_experiment(experiment_name)
+    experiment_id, active_run = create_experiment_and_start_run(
+        experiment_name, f"training_{best_name}_{timestamp}", MLFLOW_URL
+    )
 
-    with mlflow.start_run(experiment_id=experiment_id, run_name=f"training_{best_name}_{timestamp}"):
-        # ── Model metadata ──
-        mlflow.log_param("model_type", best_name)
-        mlflow.log_param("model_label", f"{MODEL_NAME}_{best_name}")
-        mlflow.log_param("selected_years", str(selected_years))
-        mlflow.log_param("selected_months", str(selected_months))
-        mlflow.log_param("selected_days", str(selected_days))
-        mlflow.log_param("n_samples", len(X_train))
-        mlflow.log_param("n_features", len(FEATURE_COLUMNS))
-        mlflow.log_param("features", FEATURE_COLUMNS)
-        mlflow.log_param("correlation_id", str(correlation_id))
+    # ── Model metadata ──
+    mlflow.log_param("model_type", best_name)
+    mlflow.log_param("model_label", f"{MODEL_NAME}_{best_name}")
+    mlflow.log_param("selected_years", str(selected_years))
+    mlflow.log_param("selected_months", str(selected_months))
+    mlflow.log_param("selected_days", str(selected_days))
+    mlflow.log_param("n_samples", len(X_train))
+    mlflow.log_param("n_features", len(FEATURE_COLUMNS))
+    mlflow.log_param("features", FEATURE_COLUMNS)
+    mlflow.log_param("correlation_id", str(correlation_id))
 
-        # ── Data timespan the model was trained on ──
-        mlflow.log_param("data_start_date", str(data_min_date))
-        mlflow.log_param("data_end_date", str(data_max_date))
+    # ── Data timespan the model was trained on ──
+    mlflow.log_param("data_start_date", str(data_min_date))
+    mlflow.log_param("data_end_date", str(data_max_date))
 
-        # ── Hyperparameters (including defaults) ──
-        hyperparams = {}
+    # ── Hyperparameters (including defaults) ──
+    hyperparams = {}
+    try:
+        hyperparams = best_model.get_params()
+        mlflow.log_params({f"hp_{k}": str(v) for k, v in hyperparams.items()})
+    except Exception as e:
+        print(f"Could not log hyperparameters: {e}")
+
+    # ── Tags ──
+    mlflow.set_tag("model_label", f"{MODEL_NAME}_{best_name}")
+    mlflow.set_tag("training_data_range", f"{data_min_date} \u2192 {data_max_date}")
+    mlflow.set_tag("selected_filters", f"years={selected_years} months={selected_months} days={selected_days}")
+
+    final_metrics = evaluate_model(best_model, X_test, y_test)
+    mlflow.log_metric("R2", final_metrics['R2'])
+    mlflow.log_metric("RMSE", final_metrics['RMSE'])
+    mlflow.log_metric("MAPE", final_metrics['MAPE (%)'])
+
+    mlflow.sklearn.log_model(best_model, artifact_path=MODEL_NAME)
+
+    model_uri = f"runs:/{mlflow.active_run().info.run_id}/{MODEL_NAME}"
+    mlflow.register_model(model_uri, MODEL_NAME)
+
+    print(f"Mod\u00e8le retenu : {best_name} (R2={best_r2:.4f})")
+    print(f"Best model registered in MLflow as '{MODEL_NAME}' - Run ID: {mlflow.active_run().info.run_id}")
+
+    if fallback_model is not None:
+        mlflow.log_param("fallback_model_type", fallback_name)
+        mlflow.log_param("fallback_r2", fallback_r2)
+        fallback_metrics = evaluate_model(fallback_model, X_test, y_test)
+        mlflow.log_metric("fallback_R2", fallback_metrics['R2'])
+        mlflow.log_metric("fallback_RMSE", fallback_metrics['RMSE'])
+        mlflow.log_metric("fallback_MAPE", fallback_metrics['MAPE (%)'])
+
         try:
-            hyperparams = best_model.get_params()
-            mlflow.log_params({f"hp_{k}": str(v) for k, v in hyperparams.items()})
+            fallback_hp = fallback_model.get_params()
+            mlflow.log_params({f"fallback_hp_{k}": str(v) for k, v in fallback_hp.items()})
         except Exception as e:
-            print(f"Could not log hyperparameters: {e}")
+            print(f"Could not log fallback hyperparameters: {e}")
 
-        # ── Tags ──
-        mlflow.set_tag("model_label", f"{MODEL_NAME}_{best_name}")
-        mlflow.set_tag("training_data_range", f"{data_min_date} → {data_max_date}")
-        mlflow.set_tag("selected_filters", f"years={selected_years} months={selected_months} days={selected_days}")
+        mlflow.sklearn.log_model(fallback_model, artifact_path=f"fallback_{fallback_name}")
 
-        final_metrics = evaluate_model(best_model, X_test, y_test)
-        mlflow.log_metric("R2", final_metrics['R2'])
-        mlflow.log_metric("RMSE", final_metrics['RMSE'])
-        mlflow.log_metric("MAPE", final_metrics['MAPE (%)'])
+        fallback_reg_name = f"fallback_{fallback_name}_{timestamp}"
+        fallback_uri = f"runs:/{mlflow.active_run().info.run_id}/fallback_{fallback_name}"
+        mlflow.register_model(fallback_uri, fallback_reg_name)
 
-        mlflow.sklearn.log_model(best_model, artifact_path=MODEL_NAME)
+        print(f"Fallback model: {fallback_name} (R2={fallback_r2:.4f})")
+        print(f"Fallback model registered in MLflow as '{fallback_reg_name}'")
 
-        model_uri = f"runs:/{mlflow.active_run().info.run_id}/{MODEL_NAME}"
-        mlflow.register_model(model_uri, MODEL_NAME)
+    print(f"Training data range: {data_min_date} \u2192 {data_max_date}")
+    print(f"Hyperparameters (best): {hyperparams}")
+    print(f"Model and artifacts logged to MLflow with correlation_id: {correlation_id}")
+    print(f"MLflow experiment: {experiment_name}")
 
-        print(f"Modèle retenu : {best_name} (R2={best_r2:.4f})")
-        print(f"Best model registered in MLflow as '{MODEL_NAME}' - Run ID: {mlflow.active_run().info.run_id}")
-
-        if fallback_model is not None:
-            mlflow.log_param("fallback_model_type", fallback_name)
-            mlflow.log_param("fallback_r2", fallback_r2)
-            fallback_metrics = evaluate_model(fallback_model, X_test, y_test)
-            mlflow.log_metric("fallback_R2", fallback_metrics['R2'])
-            mlflow.log_metric("fallback_RMSE", fallback_metrics['RMSE'])
-            mlflow.log_metric("fallback_MAPE", fallback_metrics['MAPE (%)'])
-
-            try:
-                fallback_hp = fallback_model.get_params()
-                mlflow.log_params({f"fallback_hp_{k}": str(v) for k, v in fallback_hp.items()})
-            except Exception as e:
-                print(f"Could not log fallback hyperparameters: {e}")
-
-            mlflow.sklearn.log_model(fallback_model, artifact_path=f"fallback_{fallback_name}")
-
-            fallback_reg_name = f"fallback_{fallback_name}_{timestamp}"
-            fallback_uri = f"runs:/{mlflow.active_run().info.run_id}/fallback_{fallback_name}"
-            mlflow.register_model(fallback_uri, fallback_reg_name)
-
-            print(f"Fallback model: {fallback_name} (R2={fallback_r2:.4f})")
-            print(f"Fallback model registered in MLflow as '{fallback_reg_name}'")
-
-        print(f"Training data range: {data_min_date} → {data_max_date}")
-        print(f"Hyperparameters (best): {hyperparams}")
-        print(f"Model and artifacts logged to MLflow with correlation_id: {correlation_id}")
-        print(f"MLflow experiment: {experiment_name}")
+    mlflow.end_run()
 
     return {
         "model_name": best_name,

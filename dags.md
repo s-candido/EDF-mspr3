@@ -122,7 +122,7 @@ start → run_performance_test → complete
 #### Transformations:
 
 #### run_performance_test
-- **Function**: `run_performance_test_task` (wrapper) calling `run_performance_test` from `src.test.performance_test`
+- **Function**: `run_performance_test_task` (wrapper) calling `run_performance_test` from `srcperformance_test.performance_test`
 - **Transformations**:
   - **Model Loading**:
     - Fetches latest model version from MLflow registry: `get_latest_model_version("MODEL_EDF")`

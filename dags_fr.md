@@ -128,7 +128,7 @@ start → run_performance_test → complete
 #### Transformations:
 
 #### run_performance_test
-- **Fonction**: `run_performance_test_task` (enveloppe) appelant `run_performance_test` depuis `src.test.performance_test`
+- **Fonction**: `run_performance_test_task` (enveloppe) appelant `run_performance_test` depuis `srcperformance_test.performance_test`
 - **Transformations**:
   - **Chargement du Modèle**:
     - Récupère la dernière version du modèle depuis le registre MLflow: `get_latest_model_version("MODEL_EDF")`

@@ -1,15 +1,13 @@
 from typing import Iterable
 from datetime import datetime
 
-import mlflow
 import pandas as pd
 import psycopg2
 from psycopg2 import sql
 from psycopg2.extras import execute_values
-from mlflow.pyfunc import load_model
 from src.batch_prediction.db_utils import create_table_from_dataframe
 from airflow import DAG
-from mlflow.tracking import MlflowClient
+from src.mlflow.mlflow_utils import get_client, resolve_experiment_and_model
 
 DB_CONFIG = {
     "host": "edf_postgresql",
@@ -67,54 +65,14 @@ def batch_prediction(**context):
     print(f"use_fallback: {use_fallback}")
 
 
-    mlflow.set_tracking_uri(mlflow_url)
-    client = MlflowClient(tracking_uri=mlflow_url)
-
-    resolved_exp = experiment_name
-    if not resolved_exp:
-        experiments = client.search_experiments(
-            view_type=mlflow.entities.ViewType.ACTIVE_ONLY,
-            order_by=["creation_time DESC"],
-            max_results=10,
-        )
-        for exp in experiments:
-            if exp.name.startswith("MODEL_EDF_"):
-                resolved_exp = exp.name
-                break
-        if not resolved_exp:
-            raise ValueError("No MODEL_EDF_* experiment found. Run training DAG first.")
-        print(f"Auto-detected latest experiment: {resolved_exp}")
-
-    experiment = client.get_experiment_by_name(resolved_exp)
-    if not experiment:
-        raise ValueError(f"Experiment '{resolved_exp}' not found")
-
-    runs = client.search_runs(
-        experiment_ids=[experiment.experiment_id],
-        order_by=["attribute.start_time DESC"],
-        max_results=1,
+    client = get_client(mlflow_url)
+    resolved_exp, run, artifact_path, model = resolve_experiment_and_model(
+        client,
+        experiment_name=experiment_name,
+        use_fallback=use_fallback,
     )
-    if not runs:
-        raise ValueError(f"No runs found in experiment '{resolved_exp}'")
-
-    run = runs[0]
     run_id = run.info.run_id
-
-    if use_fallback:
-        fallback_type = run.data.params.get("fallback_model_type", "")
-        if not fallback_type:
-            raise ValueError(
-                f"No fallback model in experiment '{resolved_exp}'. "
-                f"Train with this experiment first, or set fallback_model to false."
-            )
-        artifact_path = f"fallback_{fallback_type}"
-        print(f"Using fallback model '{artifact_path}' from run {run_id}")
-    else:
-        artifact_path = MODEL_NAME
-        print(f"Using best model '{artifact_path}' from run {run_id}")
-
-    model_uri = f"runs:/{run_id}/{artifact_path}"
-    model = load_model(model_uri)
+    print(f"Using model '{artifact_path}' from run {run_id} (experiment: {resolved_exp})")
 
     feature_columns = list(feature_columns)
     if not feature_columns:
