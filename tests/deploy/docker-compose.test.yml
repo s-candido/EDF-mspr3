@@ -1,0 +1,53 @@
+# Deploy test infrastructure
+# Start with: docker compose -f tests/deploy/docker-compose.test.yml up -d
+# Stop with:   docker compose -f tests/deploy/docker-compose.test.yml down -v
+#
+# Services:
+#   - edf_postgresql : PostgreSQL 13 (same config as the main stack)
+#   - mlflow-test    : MLflow tracking server using SQLite backend (no external DB)
+
+services:
+
+  edf_postgresql:
+    image: postgres:13
+    container_name: edf-postgresql-test
+    ports:
+      - "5442:5432"
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  mlflow-test:
+    image: python:3.10-slim
+    container_name: mlflow-test
+    ports:
+      - "5001:5000"
+    command:
+      - sh
+      - -c
+      - |
+        pip install --quiet mlflow scikit-learn psycopg2-binary boto3 &&
+        mlflow server \
+          --host 0.0.0.0 \
+          --port 5000 \
+          --backend-store-uri sqlite:////mlflow/mlflow.db \
+          --default-artifact-root /mlflow/artifacts \
+          --serve-artifacts
+    volumes:
+      - mlflow-test-data:/mlflow
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:5000/api/2.0/mlflow/experiments/list')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+volumes:
+  mlflow-test-data:
