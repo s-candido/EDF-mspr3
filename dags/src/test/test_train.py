@@ -29,7 +29,7 @@ class TestTrainModels:
         X = sample_feature_df.drop(columns=["consommation"])
         y = sample_feature_df["consommation"]
         models = train_models(X, y)
-        expected = {"LinearRegression", "RandomForest", "KNN", "XGBoost"}
+        expected = {"LinearRegression", "RandomForest", "KNN", "XGBoost", "Prophet"}
         assert set(models.keys()) == expected
 
     def test_train_models_returns_fitted_models(self, sample_feature_df):
@@ -74,7 +74,7 @@ class TestTrainModels:
         X = np.array([[1], [2], [3], [4], [5], [6], [7], [8]], dtype=float)
         y = np.array([10, 20, 30, 40, 50, 60, 70, 80], dtype=float)
         models = train_models(X, y)
-        assert len(models) == 4
+        assert len(models) == 5
         for name, model in models.items():
             pred = model.predict([[9]])
             assert np.isfinite(pred[0])

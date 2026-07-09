@@ -16,7 +16,7 @@ DB_CONFIG = {
     "port": int(os.environ.get("TEST_DB_PORT", "5442")),
 }
 
-MLFLOW_URL = os.environ.get("TEST_MLFLOW_URL", "http://localhost:5001")
+MLFLOW_URL = os.environ.get("TEST_MLFLOW_URL", "http://localhost:5000")
 
 ECO2MIX_URL = (
     "https://eco2mix.rte-france.com/download/eco2mix"

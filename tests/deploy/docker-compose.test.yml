@@ -28,7 +28,7 @@ services:
     image: python:3.10-slim
     container_name: mlflow-test
     ports:
-      - "5001:5000"
+      - "5000:5000"
     command:
       - sh
       - -c
@@ -38,12 +38,13 @@ services:
           --host 0.0.0.0 \
           --port 5000 \
           --backend-store-uri sqlite:////mlflow/mlflow.db \
-          --default-artifact-root /mlflow/artifacts \
+          --default-artifact-root http://localhost:5000/api/2.0/mlflow-artifacts/artifacts \
+          --artifacts-destination file:/mlflow/artifacts \
           --serve-artifacts
     volumes:
       - mlflow-test-data:/mlflow
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:5000/api/2.0/mlflow/experiments/list')\""]
+      test: ["CMD-SHELL", "python -c \"import urllib.request, json; req = urllib.request.Request('http://localhost:5000/api/2.0/mlflow/experiments/search', data=json.dumps({'max_results':1}).encode(), headers={'Content-Type':'application/json'}); urllib.request.urlopen(req)\""]
       interval: 5s
       timeout: 5s
       retries: 15

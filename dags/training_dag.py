@@ -118,11 +118,21 @@ def train_and_log_model(**context):
     ranked.sort(key=lambda x: x[0], reverse=True)
     best_r2, best_name, best_model = ranked[0]
     fallback_r2, fallback_name, fallback_model = ranked[1] if len(ranked) > 1 else (None, None, None)
-    print(f"Best model: {best_name} (R2={best_r2:.4f})")
+
+    print()
+    print("=" * 70)
+    print(f"{'Modèle':<20} {'R²':<12} {'RMSE':<14} {'MAPE (%)':<12}")
+    print("-" * 58)
+    for _, name, model in ranked:
+        met = evaluate_model(model, X_test, y_test)
+        print(f"{name:<20} {met['R2']:<12.4f} {met['RMSE']:<14.2f} {met['MAPE (%)']:<12.2f}")
+    print("-" * 58)
+    champion_met = evaluate_model(best_model, X_test, y_test)
+    print(f"\n🏆 CHAMPION    -> {best_name} (R²={best_r2:.4f}, RMSE={champion_met['RMSE']:.2f}, MAPE={champion_met['MAPE (%)']:.2f}%)")
     if fallback_name:
-        print(f"Fallback model: {fallback_name} (R2={fallback_r2:.4f})")
-    else:
-        print("No fallback model")
+        fallback_met = evaluate_model(fallback_model, X_test, y_test)
+        print(f"🥈 CHALLENGER  -> {fallback_name} (R²={fallback_r2:.4f}, RMSE={fallback_met['RMSE']:.2f}, MAPE={fallback_met['MAPE (%)']:.2f}%)")
+    print("=" * 70)
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     experiment_name = f"{MODEL_NAME}_{best_name}_{timestamp}"
